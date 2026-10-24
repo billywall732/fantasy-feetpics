@@ -1,0 +1,64 @@
+# Fantasy Feetpics
+
+A stats site for the Fantasy Feetpics ESPN league (league 395796507).
+
+## Refresh
+
+```
+node fetch.mjs   # pulls the latest data from ESPN into data/
+node build.mjs   # builds site/index.html
+```
+
+Open `site/index.html` in a browser. The page has the data built in; `site/fonts/` holds its fonts.
+
+## Publish on GitHub Pages
+
+The workflow in `.github/workflows/deploy.yml` fetches, builds and publishes the site twice a day
+(7am and 7pm ET), on every push to `main`, and on demand.
+
+1. Create a **public** GitHub repo and push this folder to its `main` branch. `.env`, `data/` and `site/`
+   are gitignored, so no cookies or raw data get pushed.
+2. In the repo, go to **Settings → Secrets and variables → Actions**:
+   - **Secrets:** `ESPN_S2` and `ESPN_SWID` (the same values as in `.env`).
+   - **Variables:** `LEAGUE_ID` = `395796507`, `SEASON` = `2026`, `ICE_SHEET_ID` = the sheet ID,
+     `ICE_SHEET_TAB` = `Ice Stats`.
+3. **Settings → Pages → Build and deployment → Source: GitHub Actions.**
+4. **Actions → Build and deploy → Run workflow.** The site appears at
+   `https://<your-username>.github.io/<repo-name>/`.
+
+Anyone with that link can see the site, including owners' real names. If the ESPN cookies expire,
+the workflow fails and GitHub emails the repo owner; update the two secrets with fresh cookies.
+
+## Setup
+
+`fetch.mjs` reads ESPN login cookies from `.env` (gitignored):
+
+```
+ESPN_S2=...
+ESPN_SWID={...}
+LEAGUE_ID=395796507
+SEASON=2026
+```
+
+If fetching starts returning 401, the cookies have expired. Log into espn.com again and copy fresh
+`espn_s2` and `SWID` values from DevTools → Application → Cookies.
+
+`.env` also holds `ICE_SHEET_ID` and `ICE_SHEET_TAB` for the ice log. The sheet must be shared as
+"Anyone with the link can view". If it can't be read, the build keeps the last `data/ice-log.csv`.
+
+## Ice rules
+
+Worked out from ESPN scores in `build.mjs`. One ice for the lowest team score of each NFL week (all tied
+teams owe one) and one for every starter scoring 0 or less. Playoff ices count double
+(`league.config.json` → `ice.playoffMultiplier`). Due Thursday 8:00 PM ET after the week's last game.
+
+`league.config.json` maps ESPN accounts to the names the league uses. If the build warns about an
+unmatched name in the ice log, add it to that owner's `aliases`.
+
+## Files
+
+- `env.mjs`: reads settings from environment variables, falling back to `.env`
+- `fetch.mjs`: ESPN API calls (teams, rosters, matchups, box scores, draft, transactions, past seasons)
+- `build.mjs`: computes standings, all-play, luck, power rankings, optimal lineups, draft value, awards and history
+- `site-src/template.html`: the page; `build.mjs` injects the data where it says `/*__DATA__*/null`
+- `site-src/fonts/`: Barlow and Big Shoulders Display (latin), copied into `site/fonts/` by the build

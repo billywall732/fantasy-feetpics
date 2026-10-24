@@ -1,0 +1,52 @@
+{
+  "owners": {
+    "Jason Liskoff": {
+      "name": "Jason Liskoff",
+      "short": "Jason"
+    },
+    "Ian Kenny": {
+      "name": "Ian Kenny",
+      "short": "Ian"
+    },
+    "Alexander Carter": {
+      "name": "Alex Carter",
+      "short": "Alex",
+      "aliases": [
+        "Alexander Carter"
+      ]
+    },
+    "Bryan Wall": {
+      "name": "Bryan Wall",
+      "short": "Bryan"
+    },
+    "Hingle McCringleberry": {
+      "name": "Tim Viola",
+      "short": "Timmy",
+      "aliases": [
+        "Hingle McCringleberry",
+        "Timmy",
+        "Tim"
+      ]
+    },
+    "Billy Wall": {
+      "name": "Billy Wall",
+      "short": "Billy"
+    },
+    "James Waring": {
+      "name": "James Waring",
+      "short": "James"
+    },
+    "Ben Wick": {
+      "name": "Ben Wick",
+      "short": "Ben"
+    },
+    "Anthony Confalone": {
+      "name": "Anthony Confalone",
+      "short": "Anthony"
+    }
+  },
+  "ice": {
+    "deadline": "Thursday 8:00 PM ET after the week's last game",
+    "playoffMultiplier": 2
+  }
+}

@@ -1,0 +1,58 @@
+# Refreshes the league data from ESPN and the ice sheet, rebuilds the site, and publishes it to GitHub Pages.
+name: Build and deploy
+
+on:
+  schedule:
+    - cron: '0 11 * * *'   # every day, 7am ET (after Monday night's game on Tuesdays)
+    - cron: '0 23 * * *'   # every day, 7pm ET (picks up ices logged during the day)
+  workflow_dispatch:       # "Run workflow" button for a manual refresh
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Fetch data
+        run: node fetch.mjs
+        env:
+          ESPN_S2: ${{ secrets.ESPN_S2 }}
+          ESPN_SWID: ${{ secrets.ESPN_SWID }}
+          LEAGUE_ID: ${{ vars.LEAGUE_ID }}
+          SEASON: ${{ vars.SEASON }}
+          ICE_SHEET_ID: ${{ vars.ICE_SHEET_ID }}
+          ICE_SHEET_TAB: ${{ vars.ICE_SHEET_TAB }}
+      - name: Build site
+        run: node build.mjs
+        env:
+          ESPN_S2: ${{ secrets.ESPN_S2 }}
+          ESPN_SWID: ${{ secrets.ESPN_SWID }}
+          LEAGUE_ID: ${{ vars.LEAGUE_ID }}
+          SEASON: ${{ vars.SEASON }}
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
