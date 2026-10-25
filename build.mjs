@@ -730,6 +730,36 @@ const records = [
   { title: 'Closest game ever', ...rec(allClose), value: fmt(allClose.score - allClose.opp.score), note: `${allClose.year} week ${allClose.week}: ${fmt(allClose.score)} to ${fmt(allClose.opp.score)} over ${allClose.opp.team}` },
 ];
 
+// Each manager's highest and lowest weekly score, per season and all-time (regular season).
+const years = [...new Set(allGames.map((g) => g.year))].sort();
+const mark = (x) => x && { score: r2(x.score), week: x.week, year: x.year, team: x.team, opp: x.opp.team };
+const ownerHighLow = Object.keys(allTime).map((ownerId) => {
+  const mine = sides.filter((x) => x.owner === ownerId);
+  const seasonsHL = Object.fromEntries(years.map((y) => {
+    const s = mine.filter((x) => x.year === y);
+    return [y, s.length ? { high: mark(by(s, (x) => x.score)), low: mark(by(s, (x) => -x.score)), avg: r1(s.reduce((a, x) => a + x.score, 0) / s.length) } : null];
+  }));
+  return { ownerId, seasons: seasonsHL, high: mark(by(mine, (x) => x.score)), low: mark(by(mine, (x) => -x.score)) };
+}).sort((a, b) => b.high.score - a.high.score);
+
+// Weekly results by owner for every season, for the schedule-swap "what if".
+const schedules = Object.fromEntries(years.map((y) => {
+  const gs = allGames.filter((g) => g.year === y);
+  const weeksList = [...new Set(gs.map((g) => g.week))].sort((a, b) => a - b);
+  const ownersIn = [...new Set(gs.flatMap((g) => [g.home.owner, g.away.owner]))];
+  const teamNames = Object.fromEntries(gs.flatMap((g) => [[g.home.owner, g.home.team], [g.away.owner, g.away.team]]));
+  // weeks[i][owner] = [opponent owner, own score]
+  const weeksOut = weeksList.map((w) => {
+    const row = {};
+    for (const g of gs.filter((g) => g.week === w)) {
+      row[g.home.owner] = [g.away.owner, r2(g.home.score)];
+      row[g.away.owner] = [g.home.owner, r2(g.away.score)];
+    }
+    return row;
+  });
+  return [y, { weeks: weeksList, owners: ownersIn, teamNames, results: weeksOut }];
+}));
+
 // ---------- Output ----------
 const model = {
   league: { name: cur.settings.name.trim(), season: SEASON, currentWeek, lastWeek, regWeeks, playoffTeams, size: teams.length, trades, updated: cur.status.standingsUpdateDate, built: Date.now(), leagueId: env.LEAGUE_ID, weekStart: weekSpans[currentWeek]?.first ?? null, weekEnd: weekSpans[currentWeek]?.last ?? null },
@@ -746,6 +776,8 @@ const model = {
   h2h,
   owners,
   records,
+  ownerHighLow,
+  schedules,
   highsLows,
   ice: { weeks: iceWeeks, log: iceLog, table: iceTable, multiplier, currentSp: latestSp },
 };

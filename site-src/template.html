@@ -409,6 +409,39 @@ td.titles .no-title { color: var(--muted); font-family: var(--font-display); fon
 .ice-bar i { background: linear-gradient(90deg, #9fd3ff, var(--ice)); }
 .cubes { letter-spacing: -2px; font-size: 15px; }
 
+/* What if */
+.whatif { padding: 16px; display: grid; gap: 16px; }
+.wi-controls { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) 120px; gap: 10px; align-items: end; }
+.wi-controls label { display: grid; gap: 4px; min-width: 0; }
+.wi-controls label span { font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.wi-controls select { width: 100%; }
+.wi-swap { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--line-strong); background: var(--surface-solid); font-size: 18px; cursor: pointer; color: var(--violet); }
+.wi-swap:hover { border-color: var(--violet); }
+.wi-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.wi-card { display: grid; gap: 6px; justify-items: start; padding: 14px 16px; border-radius: 10px; background: var(--surface-2); border-top: 4px solid var(--line-strong); }
+.wi-card.better { background: color-mix(in oklab, var(--good) 10%, var(--surface-solid)); border-top-color: var(--good); }
+.wi-card.worse { background: color-mix(in oklab, var(--bad) 9%, var(--surface-solid)); border-top-color: var(--bad); }
+.wi-rec { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.wi-rec b { font-family: var(--font-display); font-weight: 900; font-size: 44px; line-height: 1; font-variant-numeric: tabular-nums; }
+.wi-rec span { color: var(--muted); font-weight: 600; }
+.wi-detail summary { cursor: pointer; font-weight: 700; color: var(--ink-2); font-size: 13.5px; }
+.wi-detail summary:hover { color: var(--accent); }
+.wi-detail .scroll { margin-top: 8px; }
+#wi-weeks tr.changed { background: color-mix(in oklab, var(--gold) 12%, transparent); }
+.sub-h { font-family: var(--font-display); font-weight: 800; font-size: 22px; text-transform: uppercase; }
+.swap-grid td.c { cursor: pointer; }
+.swap-grid td.c:hover { outline: 2px solid var(--ink-2); outline-offset: -2px; }
+.swap-grid td.selected { outline: 3px solid var(--violet); outline-offset: -3px; }
+.swap-grid td.actual { font-weight: 800; color: var(--ink); }
+/* Highs and lows by manager */
+#owner-hl td { vertical-align: middle; }
+.hl-line { display: flex; align-items: baseline; gap: 4px; white-space: nowrap; line-height: 1.5; }
+.hl-line .arrow { font-size: 10px; }
+.hl-line.hi .arrow, .hl-line.hi b { color: var(--good); }
+.hl-line.lo .arrow, .hl-line.lo b { color: var(--bad); }
+.hl-line small { color: var(--muted); font-size: 11.5px; }
+td.hl-all { background: color-mix(in oklab, var(--gold) 8%, transparent); }
+
 /* Live games */
 .live-pill { background: color-mix(in oklab, var(--coral) 16%, var(--surface-solid)); color: var(--coral); }
 .live-game { border-top: 3px solid var(--coral); }
@@ -604,6 +637,18 @@ footer .wrap { padding-block: 18px 32px; display: flex; flex-wrap: wrap; gap: 8p
   /* Got away: "dropped by" moves under the player */
   #wire-regrets tr > :nth-child(2) { display: none; }
   #ice-watch tr > :nth-child(3), #ice-watch tr > :nth-child(4) { display: none; }
+  /* What if: stacked controls and cards */
+  .whatif { padding: 12px; }
+  .wi-controls { grid-template-columns: minmax(0, 1fr) auto; }
+  .wi-controls label:first-child { grid-column: 1 / -1; }
+  .wi-controls .wi-swap { grid-row: 2; grid-column: 2; }
+  .wi-controls label:nth-of-type(2) { grid-row: 2; grid-column: 1; }
+  .wi-controls .wi-year { grid-column: 1 / -1; }
+  .wi-summary { grid-template-columns: 1fr; gap: 10px; }
+  .wi-rec b { font-size: 36px; }
+  #wi-weeks tr > :nth-child(6) { display: none; }
+  #swap-grid tr > :first-child, #owner-hl tr > :first-child { position: sticky; left: 0; z-index: 1; background: var(--surface-solid); box-shadow: 1px 0 0 var(--line); }
+  #swap-grid .rowh { max-width: 104px; white-space: normal; font-size: 11.5px; }
   .proj-line { font-size: 11px; }
   .side.won b::after { content: "\00a0🏆"; }
   .wire-filters { align-items: stretch; }
@@ -703,6 +748,27 @@ footer .wrap { padding-block: 18px 32px; display: flex; flex-wrap: wrap; gap: 8p
           <p>All-play is the record you'd have playing every team every week. Luck is actual wins minus the wins that record predicts. 🍀 lucky, 💀 cursed.</p>
         </div>
         <div class="panel scroll"><table id="standings-table"></table></div>
+      </div>
+      <div class="block" id="whatif-block">
+        <div class="block-head">
+          <h2>What if?</h2>
+          <p>Swap schedules: see any manager's record if they had faced someone else's opponents, week by week, with their own scores.</p>
+        </div>
+        <div class="panel whatif">
+          <div class="wi-controls">
+            <label for="wi-a"><span>Manager</span><select id="wi-a"></select></label>
+            <button type="button" class="wi-swap" id="wi-flip" title="Swap the two managers" aria-label="Swap the two managers">⇄</button>
+            <label for="wi-b"><span>With the schedule of</span><select id="wi-b"></select></label>
+            <label for="wi-year" class="wi-year"><span>Season</span><select id="wi-year"></select></label>
+          </div>
+          <div class="wi-summary" id="wi-summary"></div>
+          <details class="wi-detail"><summary>Week by week</summary><div class="scroll"><table id="wi-weeks"></table></div></details>
+        </div>
+        <div class="block-head" style="margin-top:6px">
+          <h3 class="sub-h">Every schedule</h3>
+          <p>Each row is a manager, each column the schedule they play. The diagonal is what really happened; green beats it, red falls short. Tap a cell to open it above.</p>
+        </div>
+        <div class="panel scroll"><table class="h2h swap-grid" id="swap-grid"></table></div>
       </div>
       <div class="block">
         <div class="block-head">
@@ -897,6 +963,10 @@ footer .wrap { padding-block: 18px 32px; display: flex; flex-wrap: wrap; gap: 8p
         <div class="panel scroll"><table id="alltime"></table></div>
       </div>
       <div class="block defer">
+        <div class="block-head"><h2>Highs and lows</h2><p>Each manager's best and worst weekly score in every season, and all-time. Regular season only. 🔥 the season's top score, 🧊 its lowest.</p></div>
+        <div class="panel scroll"><table id="owner-hl"></table></div>
+      </div>
+      <div class="block defer">
         <div class="block-head"><h2>League records</h2><p>Regular season, single week, since 2024.</p></div>
         <div class="awards" id="records"></div>
       </div>
@@ -1014,7 +1084,7 @@ $('tabs').innerHTML = VIEWS.map(([id, label, icon]) => `<a href="#${id}" data-vi
 let currentView = 'standings';
 // Each tab is built the first time it's opened, so the first load only builds Standings.
 const RENDER = {
-  standings: () => { renderStandingsTable(); renderChips(); renderHeat(); renderHighsLows(); },
+  standings: () => { renderStandingsTable(); renderWhatIf(); renderChips(); renderHeat(); renderHighsLows(); },
   matchups: () => renderMatchups(),
   ice: () => renderIce(),
   power: () => renderPower(),
@@ -1208,6 +1278,81 @@ function renderStandingsTable() {
   });
   $('standings-table').innerHTML = `<thead><tr><th>Seed</th><th>Team</th><th class="r">Record</th><th class="r">Points for</th><th class="r">Against</th><th class="r">Streak</th><th class="r">All-play</th><th class="r">Luck</th></tr></thead><tbody>${rows}</tbody>`;
 }
+
+/* ---------- What if: schedule swap ---------- */
+// A plays B's schedule: each week A faces whoever B faced (and faces B in the week B played A), using A's own score.
+function swapRecord(S, a, b) {
+  const weeks = S.results.map((row, i) => {
+    if (!row[a] || !row[b]) return null;
+    const oppOfB = row[b][0];
+    const opp = oppOfB === a ? b : oppOfB;
+    const mine = row[a][1], theirs = row[opp][1];
+    return { week: S.weeks[i], opp, mine, theirs, result: mine > theirs ? 'W' : mine < theirs ? 'L' : 'T', actualOpp: row[a][0], actual: mine > row[row[a][0]][1] ? 'W' : mine < row[row[a][0]][1] ? 'L' : 'T' };
+  }).filter(Boolean);
+  const count = (k, r) => weeks.filter((w) => w[k] === r).length;
+  return { weeks, w: count('result', 'W'), l: count('result', 'L'), t: count('result', 'T'), aw: count('actual', 'W'), al: count('actual', 'L'), at: count('actual', 'T') };
+}
+const recStr = (w, l, t) => `${w}-${l}${t ? '-' + t : ''}`;
+const ownerName = (id) => D.owners[id]?.name ?? '';
+let wiYear = String(L.season), wiA = null, wiB = null;
+function renderWhatIf() {
+  const years = Object.keys(D.schedules).sort().reverse();
+  $('wi-year').innerHTML = years.map((y) => `<option value="${y}"${y === wiYear ? ' selected' : ''}>${y}</option>`).join('');
+  const S = D.schedules[wiYear];
+  if (!S || !S.weeks.length) { $('wi-summary').innerHTML = '<p class="note">No games played yet this season.</p>'; return; }
+  const ids = [...S.owners].sort((x, y) => ownerName(x).localeCompare(ownerName(y)));
+  if (!ids.includes(wiA) || !ids.includes(wiB) || wiA === wiB) {
+    // Start with the season's unluckiest manager trying the luckiest manager's schedule.
+    const swing = ids.map((id) => {
+      const r = swapRecord(S, id, id);
+      const allPlay = ids.reduce((s, o) => s + (o === id ? 0 : S.results.reduce((a, row) => a + (row[id] && row[o] ? (row[id][1] > row[o][1] ? 1 : row[id][1] === row[o][1] ? 0.5 : 0) : 0), 0)), 0) / (ids.length - 1);
+      return { id, luck: r.aw - allPlay };
+    }).sort((x, y) => x.luck - y.luck);
+    wiA = swing[0].id; wiB = swing.at(-1).id;
+  }
+  const opts = (sel) => ids.map((id) => `<option value="${esc(id)}"${id === sel ? ' selected' : ''}>${esc(ownerName(id))}</option>`).join('');
+  $('wi-a').innerHTML = opts(wiA);
+  $('wi-b').innerHTML = opts(wiB);
+
+  const ab = swapRecord(S, wiA, wiB), ba = swapRecord(S, wiB, wiA);
+  const card = (who, other, r) => {
+    const diff = r.w - r.aw;
+    const verdict = diff > 0 ? `<span class="pill win">${E('📈')} +${diff} ${diff === 1 ? 'win' : 'wins'}</span>` : diff < 0 ? `<span class="pill loss">${E('📉')} ${diff} ${diff === -1 ? 'win' : 'wins'}</span>` : `<span class="pill muted">No change</span>`;
+    return `<div class="wi-card ${diff > 0 ? 'better' : diff < 0 ? 'worse' : ''}">
+      <span class="eyebrow">${esc(ownerName(who))} with ${esc(ownerName(other))}'s schedule</span>
+      <div class="wi-rec"><b>${recStr(r.w, r.l, r.t)}</b><span>actual ${recStr(r.aw, r.al, r.at)}</span></div>${verdict}</div>`;
+  };
+  $('wi-summary').innerHTML = card(wiA, wiB, ab) + card(wiB, wiA, ba);
+  $('wi-weeks').innerHTML = `<thead><tr><th>Wk</th><th>Would face</th><th class="r">${esc(ownerName(wiA).split(' ')[0])}</th><th class="r">Opp</th><th>Result</th><th>Actually</th></tr></thead><tbody>${ab.weeks.map((w) => `
+    <tr class="${w.result !== w.actual ? 'changed' : ''}"><td>${w.week}</td><td style="white-space:normal">${esc(ownerName(w.opp))}<small class="note"> · ${esc(S.teamNames[w.opp] || '')}</small></td>
+    <td class="r"><b>${f2(w.mine)}</b></td><td class="r">${f2(w.theirs)}</td><td>${resPill(w.result)}${w.result !== w.actual ? ` ${E(w.result === 'W' ? '✨' : '💔')}` : ''}</td>
+    <td class="note">${w.actual} vs ${esc(ownerName(w.actualOpp).split(' ')[0])}</td></tr>`).join('')}</tbody>`;
+
+  // Everyone against everyone's schedule.
+  const short = (id) => { const n = ownerName(id).split(' '); return n[0] + (n[1] ? ' ' + n[1][0] + '.' : ''); };
+  $('swap-grid').innerHTML = `<thead><tr><th class="rowh">Manager ↓ · Schedule →</th>${ids.map((id) => `<th>${esc(short(id))}</th>`).join('')}</tr></thead><tbody>${ids.map((a) => {
+    const actual = swapRecord(S, a, a).aw;
+    return `<tr><th class="rowh">${esc(ownerName(a))}</th>${ids.map((b) => {
+      const r = swapRecord(S, a, b);
+      if (a === b) return `<td class="self actual" title="Actual record">${recStr(r.w, r.l, r.t)}</td>`;
+      const diff = r.w - actual;
+      const k = diff > 0 ? 'var(--accent)' : diff < 0 ? 'var(--bad)' : 'var(--surface-2)';
+      const p = diff === 0 ? 100 : Math.min(60, 14 + Math.abs(diff) * 14);
+      const sel = a === wiA && b === wiB ? ' selected' : '';
+      return `<td class="c num${sel}" style="--k:${k};--p:${p}" data-a="${esc(a)}" data-b="${esc(b)}" title="${esc(ownerName(a))} with ${esc(ownerName(b))}'s schedule: ${recStr(r.w, r.l, r.t)} (${diff >= 0 ? '+' : ''}${diff})">${recStr(r.w, r.l, r.t)}</td>`;
+    }).join('')}</tr>`;
+  }).join('')}</tbody>`;
+  requestAnimationFrame(markScrollers);
+}
+$('wi-a').addEventListener('change', (e) => { wiA = e.target.value; if (wiA === wiB) wiB = [...D.schedules[wiYear].owners].find((x) => x !== wiA); renderWhatIf(); });
+$('wi-b').addEventListener('change', (e) => { wiB = e.target.value; if (wiA === wiB) wiA = [...D.schedules[wiYear].owners].find((x) => x !== wiB); renderWhatIf(); });
+$('wi-year').addEventListener('change', (e) => { wiYear = e.target.value; renderWhatIf(); });
+$('wi-flip').addEventListener('click', () => { [wiA, wiB] = [wiB, wiA]; renderWhatIf(); });
+$('swap-grid').addEventListener('click', (e) => {
+  const td = e.target.closest('td[data-a]'); if (!td) return;
+  wiA = td.dataset.a; wiB = td.dataset.b; renderWhatIf();
+  $('whatif-block').scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+});
 
 /* Heat grid */
 function renderHeat() {
@@ -1740,6 +1885,26 @@ function renderHistory() {
     <td class="r">${f1(a.ppg)}</td><td class="note">${a.finishes.map((f) => `${f.year}: ${ord(f.final)}${finishIcon(f.final) ? ' ' + finishIcon(f.final) : ''}`).join(' · ') || '—'}</td></tr>`).join('')}</tbody>`;
 
   const REC_ICON = { 'Highest score ever': ['🚀', 'var(--accent)'], 'Lowest score ever': ['🪫', 'var(--ice)'], 'Biggest blowout ever': ['💥', 'var(--coral)'], 'Closest game ever': ['😬', 'var(--gold)'] };
+  // Each manager's highs and lows by season.
+  {
+    const years = Object.keys(D.schedules).sort().reverse();
+    const best = {}, worst = {};
+    for (const y of years) {
+      const s = D.ownerHighLow.map((o) => o.seasons[y]).filter(Boolean);
+      best[y] = Math.max(...s.map((v) => v.high.score));
+      worst[y] = Math.min(...s.map((v) => v.low.score));
+    }
+    const allBest = Math.max(...D.ownerHighLow.map((o) => o.high.score)), allWorst = Math.min(...D.ownerHighLow.map((o) => o.low.score));
+    const line = (m, kind, top, showYear) => `<div class="hl-line ${kind}" title="${esc(m.team)} vs ${esc(m.opp)}, ${m.year} week ${m.week}">${slot(top ? (kind === 'hi' ? '🔥' : '🧊') : '')}<span class="arrow">${kind === 'hi' ? '▲' : '▼'}</span><b class="num">${f2(m.score)}</b><small>${showYear ? `${m.year} ` : ''}wk ${m.week}</small></div>`;
+    $('owner-hl').innerHTML = `<thead><tr><th>Owner</th>${years.map((y) => `<th>${y}</th>`).join('')}<th>All-time</th></tr></thead><tbody>${D.ownerHighLow.map((o) => `
+      <tr><td class="team-cell"><b>${esc(D.owners[o.ownerId].name)}</b></td>
+      ${years.map((y) => {
+        const v = o.seasons[y];
+        return v ? `<td>${line(v.high, 'hi', v.high.score === best[y], false)}${line(v.low, 'lo', v.low.score === worst[y], false)}</td>` : '<td class="note">—</td>';
+      }).join('')}
+      <td class="hl-all">${line(o.high, 'hi', o.high.score === allBest, true)}${line(o.low, 'lo', o.low.score === allWorst, true)}</td></tr>`).join('')}</tbody>`;
+  }
+
   $('records').innerHTML = D.records.map((r) => {
     const [icon, k] = REC_ICON[r.title] || ['📜', 'var(--accent)'];
     return `<div class="panel award lift" style="--k:${k}"><i class="emoji big-emoji" aria-hidden="true">${icon}</i><span>${esc(r.title)}</span><b>${esc(r.value)}</b><strong>${esc(r.owner)}</strong><small>${esc(r.team)} · ${esc(r.note)}</small></div>`;
