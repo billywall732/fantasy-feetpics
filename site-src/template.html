@@ -454,7 +454,151 @@ footer .wrap { padding-block: 18px 32px; display: flex; flex-wrap: wrap; gap: 8p
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
-  .ticker .track { white-space: normal; flex-wrap: wrap; row-gap: 4px; }
+  .ticker { overflow-x: auto; scrollbar-width: none; }
+}
+
+/* ---------- Phones (laptop layout above is untouched) ---------- */
+.bottom-nav, .more-sheet, .swipe-hint, .m-only { display: none; }
+@media (max-width: 640px) {
+  body { font-size: 14px; }
+  .m-only { display: inline-flex; }
+
+  /* Header: one-line title, compact facts, pills in a single swipeable row */
+  .masthead .wrap { padding-block: 16px 24px; gap: 14px; }
+  .brand { gap: 10px; }
+  .ball { width: 42px; height: 42px; }
+  .masthead h1 { font-size: 10.6vw; white-space: nowrap; }
+  .masthead .eyebrow { font-size: 10.5px; }
+  .masthead .meta { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: -16px; padding-inline: 16px; }
+  .masthead .meta span { font-size: 12px; white-space: nowrap; }
+  .facts { gap: 8px; }
+  .fact { padding: 8px 10px; }
+  .fact b { font-size: 22px; }
+  .fact .eyebrow { font-size: 10px; letter-spacing: .1em; }
+  .fact span:last-child { font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .yardlines { height: 28px; }
+
+  /* Ticker */
+  .ticker { font-size: 13px; }
+  .ticker .label { padding: 0 10px; font-size: 14px; }
+  .ticker .track { padding-left: 74px; gap: 28px; }
+
+  /* Navigation moves to a bottom bar within thumb reach */
+  nav.tabs { display: none; }
+  .bottom-nav {
+    display: grid; grid-template-columns: repeat(5, 1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+    background: color-mix(in oklab, var(--surface-solid) 96%, transparent); border-top: 1px solid var(--line-strong);
+    padding-bottom: env(safe-area-inset-bottom, 0px); box-shadow: 0 -6px 20px rgb(0 0 0 / .08);
+  }
+  .bottom-nav a, .bottom-nav button {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 58px; padding: 6px 2px;
+    color: var(--muted); text-decoration: none; font-size: 11px; font-weight: 700; background: none; border: 0; border-top: 3px solid transparent; cursor: pointer;
+  }
+  .bottom-nav .emoji { font-size: 20px; filter: grayscale(.6); }
+  .bottom-nav [aria-current="page"], .bottom-nav button.current, .bottom-nav button[aria-expanded="true"] { color: var(--ink); border-top-color: var(--accent); }
+  .bottom-nav [aria-current="page"] .emoji, .bottom-nav button.current .emoji { filter: none; }
+  .more-sheet:not([hidden]) { display: block; position: fixed; inset: 0; z-index: 29; }
+  .more-backdrop { position: absolute; inset: 0; background: rgb(0 0 0 / .35); }
+  .more-panel { position: absolute; left: 10px; right: 10px; bottom: calc(66px + env(safe-area-inset-bottom, 0px)); padding: 12px; display: grid; gap: 12px; background: var(--surface-solid); }
+  .more-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .more-grid a { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 4px; border-radius: 10px; background: var(--surface-2); color: var(--ink); text-decoration: none; font-weight: 700; font-size: 12.5px; text-align: center; }
+  .more-grid a .emoji { font-size: 24px; }
+  .more-grid a[aria-current="page"] { background: color-mix(in oklab, var(--accent) 18%, var(--surface-solid)); box-shadow: inset 0 0 0 2px var(--accent); }
+  .more-toggles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .more-toggles .theme-btn { justify-content: center; padding: 10px; }
+  .more-toggles .theme-btn span:last-child { display: inline; }
+  main .wrap { padding-block: 22px calc(96px + env(safe-area-inset-bottom, 0px)); }
+  footer .wrap { padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px)); }
+
+  /* Section rhythm */
+  section.view { gap: 32px; }
+  .block { gap: 10px; }
+  .block-head h2 { font-size: 26px; }
+  .block-head h2::after { width: 26px; height: 3px; }
+  .block-head p, .note { font-size: 12.5px; }
+
+  /* Tables: tighter cells, wrapped names, secondary columns hidden */
+  th, td { padding: 8px 6px; }
+  th { font-size: 10px; letter-spacing: .06em; }
+  td { font-size: 13.5px; }
+  .team-cell { min-width: 108px; }
+  .team-cell b { font-size: 13.5px; }
+  .team-cell small { font-size: 11.5px; }
+  .seed { width: 34px; font-size: 18px; }
+  .seed .emoji { font-size: 13px; margin-left: 1px; }
+  .pill { font-size: 11.5px; padding: 2px 7px; }
+  .ico { width: 1.2em; }
+  .bar { min-width: 44px; }
+  td.titles .crown svg { width: 32px; height: 27px; }
+  td.titles .crown, td.titles .no-title { width: 32px; height: 27px; }
+  #standings-table tr > :nth-child(5), #standings-table tr > :nth-child(7),
+  #report tr > :nth-child(4), #report tr > :nth-child(6), #report tr > :nth-child(8), #report tr > :nth-child(9),
+  #ice-board tr > :nth-child(3), #ice-board tr > :nth-child(4), #ice-board tr > :nth-child(5), #ice-board tr > :nth-child(7), #ice-board tr > :nth-child(8),
+  #ice-log tr > :nth-child(3),
+  #power-table tr > :nth-child(4), #power-table tr > :nth-child(6), #power-table tr > :nth-child(8), #power-table tr > :nth-child(9), #power-table tr > :nth-child(10),
+  #roster tr > :nth-child(3), #roster tr > :nth-child(5), #roster tr > :nth-child(6),
+  #wire-teams tr > :nth-child(4), #wire-teams tr > :nth-child(5), #wire-teams tr > :nth-child(6), #wire-teams tr > :nth-child(8),
+  #wire-pickups tr > :nth-child(3),
+  #alltime tr > :nth-child(2), #alltime tr > :nth-child(4), #alltime tr > :nth-child(7), #alltime tr > :nth-child(8) { display: none; }
+  #roster td:nth-child(2) { min-width: 0 !important; }
+  th { white-space: normal; }
+  #standings-table th, #standings-table td { padding-inline: 5px; }
+  #standings-table .team-cell { min-width: 92px; }
+  #highs-lows .emoji, #highs-lows .ico { display: none; }
+  #highs-lows th, #highs-lows td { padding-inline: 5px; }
+  #ice-log td:first-child { white-space: normal; min-width: 76px; }
+  #power-table .move { width: 40px; }
+  .cubes { display: none; }
+  #highs-lows .team-cell small, #heat .team-cell small, #ice-grid .team-cell small { display: none; }
+  #highs-lows .team-cell { min-width: 70px; }
+
+  /* Grids that must stay wide: pin the first column while swiping */
+  #heat tr > :first-child, #ice-grid tr > :first-child, #h2h tr > :first-child, #report tr > :first-child, #board tr > :first-child {
+    position: sticky; left: 0; z-index: 1; background: var(--surface-solid); box-shadow: 1px 0 0 var(--line);
+  }
+  #heat .team-cell, #ice-grid .team-cell, #report .team-cell { min-width: 96px; max-width: 110px; }
+  .heat td.cell { min-width: 58px; font-size: 13px; }
+  .swipe-hint { display: block; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); text-align: right; margin-bottom: -4px; }
+  .scroll.has-more:not(.at-end) { -webkit-mask: linear-gradient(90deg, #000 calc(100% - 24px), rgb(0 0 0 / .25)); mask: linear-gradient(90deg, #000 calc(100% - 24px), rgb(0 0 0 / .25)); }
+
+  /* Controls that wrapped into piles become swipeable rows */
+  .chips, .weekbar { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: -16px; padding: 2px 16px 4px; }
+  .chip, .weekbar button { flex: none; }
+  .weekbar .note { flex: none; }
+  .wire-filters { align-items: stretch; }
+  .wire-filters .chips { width: calc(100% + 32px); }
+  select { width: 100%; }
+  .block-head label.note { width: 100%; }
+
+  /* Cards: two-up awards and records, tighter tiles and matchups */
+  .awards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .award { padding: 12px; gap: 3px; }
+  .award .big-emoji { font-size: 22px; right: 8px; top: 8px; }
+  .award span { font-size: 10px; padding-right: 24px; letter-spacing: .06em; }
+  .award b { font-size: 26px; }
+  .award strong { font-size: 13px; }
+  .award small { font-size: 11.5px; }
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .tile { padding: 12px; }
+  .tile b { font-size: 28px; }
+  .tile::after { font-size: 48px; }
+  .game .sides { padding: 6px 12px 14px; gap: 6px; }
+  .game .tagline { padding: 10px 12px 0; }
+  .side b { font-size: 13.5px; }
+  .side small { font-size: 11.5px; }
+  .game .vs { font-size: 14px; }
+  .winbar { margin-inline: 12px; } .winodds { margin-inline: 12px; }
+  .lineups { padding: 0 12px 12px; }
+  .banner { padding: 16px; }
+  .banner .yr { font-size: 40px; }
+  .banner .trophy { font-size: 42px; }
+  .ice-cards { gap: 10px; }
+  .ice-card { padding: 12px; gap: 12px; }
+  .ice-count { min-width: 50px; }
+  .ice-count b { font-size: 34px; }
+  .due-head h3 { font-size: 24px; }
+  .trade { padding: 12px; }
+  .moves li { padding: 10px 12px; }
 }
 </style>
 </head>
@@ -500,7 +644,16 @@ footer .wrap { padding-block: 18px 32px; display: flex; flex-wrap: wrap; gap: 8p
   </div>
 </nav>
 
-<main>
+<nav class="bottom-nav" id="bottom-nav" aria-label="Sections"></nav>
+<div class="more-sheet" id="more-sheet" hidden>
+  <div class="more-backdrop" id="more-backdrop"></div>
+  <div class="more-panel panel" role="dialog" aria-label="More sections">
+    <div class="more-grid" id="more-grid"></div>
+    <div class="more-toggles" id="more-toggles"></div>
+  </div>
+</div>
+
+<main id="main">
   <div class="wrap">
     <section class="view" id="view-standings">
       <div class="block">
@@ -844,12 +997,72 @@ function show(id) {
   }
   if (id === 'standings') drawChartIfNeeded();
   particles.setMode(id === 'ice' ? 'ice' : id === 'history' ? 'gold' : 'field');
+  updateBottomNav(id);
+  requestAnimationFrame(markScrollers);
 }
 window.addEventListener('hashchange', () => {
   show(location.hash.slice(1));
+  // Land at the top of the content: below the tab bar on laptops, below the header on phones.
   const nav = document.querySelector('nav.tabs');
-  if (window.scrollY > nav.offsetTop) window.scrollTo({ top: nav.offsetTop });
+  const anchor = nav.offsetParent ? nav : $('main');
+  if (window.scrollY > anchor.offsetTop) window.scrollTo({ top: anchor.offsetTop });
 });
+
+/* ---------- Phone navigation: bottom bar with the main tabs, the rest under "More" ---------- */
+const PRIMARY = ['standings', 'matchups', 'ice', 'power'];
+const SHORT = { standings: 'Standings', matchups: 'Matchups', ice: 'Ice', power: 'Power', teams: 'Teams', wire: 'Wire', draft: 'Draft', awards: 'Awards', history: 'History' };
+$('bottom-nav').innerHTML = PRIMARY.map((id) => {
+  const [, , icon] = VIEWS.find(([v]) => v === id);
+  return `<a href="#${id}" data-view="${id}"><i class="emoji" aria-hidden="true">${icon}</i><span>${SHORT[id]}</span></a>`;
+}).join('') + `<button type="button" id="more-btn" aria-expanded="false" aria-controls="more-sheet"><i class="emoji" aria-hidden="true" id="more-icon">☰</i><span id="more-label">More</span></button>`;
+$('more-grid').innerHTML = VIEWS.filter(([v]) => !PRIMARY.includes(v)).map(([id, label, icon]) =>
+  `<a href="#${id}" data-view="${id}"><i class="emoji" aria-hidden="true">${icon}</i><span>${label}</span></a>`).join('');
+$('more-toggles').innerHTML = `<button type="button" class="theme-btn" data-proxy="theme-btn"></button><button type="button" class="theme-btn" data-proxy="fx-btn"></button>`;
+function syncToggles() {
+  for (const b of $('more-toggles').children) b.innerHTML = $(b.dataset.proxy).innerHTML;
+}
+$('more-toggles').addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  $(b.dataset.proxy).click(); syncToggles();
+});
+function setMore(open) {
+  $('more-sheet').hidden = !open;
+  $('more-btn').setAttribute('aria-expanded', String(open));
+  if (open) syncToggles();
+}
+$('more-btn').addEventListener('click', () => setMore($('more-sheet').hidden));
+$('more-backdrop').addEventListener('click', () => setMore(false));
+$('more-grid').addEventListener('click', () => setMore(false));
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') setMore(false); });
+function updateBottomNav(id) {
+  for (const a of $('bottom-nav').querySelectorAll('a')) {
+    if (a.dataset.view === id) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+  }
+  for (const a of $('more-grid').children) {
+    if (a.dataset.view === id) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+  }
+  // When a "More" tab is open, the More button shows it.
+  const inMore = !PRIMARY.includes(id);
+  const view = VIEWS.find(([v]) => v === id);
+  $('more-btn').classList.toggle('current', inMore);
+  $('more-icon').textContent = inMore ? view[2] : '☰';
+  $('more-label').textContent = inMore ? SHORT[id] : 'More';
+}
+
+/* Wide tables: on phones, show a swipe hint and fade the edge while there's more to the right. */
+function markScrollers() {
+  for (const s of document.querySelectorAll('section:not([hidden]) .scroll')) {
+    const more = s.scrollWidth > s.clientWidth + 4;
+    s.classList.toggle('has-more', more);
+    if (more && !s.dataset.hinted) {
+      s.dataset.hinted = '1';
+      s.insertAdjacentHTML('beforebegin', '<div class="swipe-hint" aria-hidden="true">Swipe for more ⇢</div>');
+      s.addEventListener('scroll', () => s.classList.toggle('at-end', s.scrollLeft + s.clientWidth >= s.scrollWidth - 4), { passive: true });
+    }
+    if (s.previousElementSibling?.classList.contains('swipe-hint')) s.previousElementSibling.hidden = !more;
+  }
+}
+let rzs; window.addEventListener('resize', () => { clearTimeout(rzs); rzs = setTimeout(markScrollers, 200); });
 
 /* ---------- Floating icons ---------- */
 const particles = (() => {
@@ -1063,10 +1276,13 @@ let curWeek = L.currentWeek;
 function renderWeekbar() {
   $('weekbar').innerHTML = '<span class="note" style="margin-right:6px">Week</span>' + [...playedWeeks, ...futureWeeks].map((w) =>
     `<button aria-pressed="${w === curWeek}" data-w="${w}" class="${futureWeeks.includes(w) ? 'future' : w === L.currentWeek ? 'live' : ''}">${w === L.currentWeek ? '<span class="live-dot"></span>' : ''}${w}</button>`).join('');
+  // On phones the week buttons are one swipeable row: keep the selected week in view.
+  const bar = $('weekbar'), sel = bar.querySelector('[aria-pressed="true"]');
+  if (sel && bar.scrollWidth > bar.clientWidth) bar.scrollLeft = sel.offsetLeft - bar.offsetLeft - (bar.clientWidth - sel.offsetWidth) / 2;
 }
 $('weekbar').addEventListener('click', (e) => {
   const b = e.target.closest('button'); if (!b) return;
-  curWeek = Number(b.dataset.w); renderWeekbar(); renderGames();
+  curWeek = Number(b.dataset.w); renderWeekbar(); renderGames(); requestAnimationFrame(markScrollers);
 });
 const lineupCol = (team, lineup, live) => {
   const starters = lineup.filter((p) => p.slot !== 20 && p.slot !== 21);
@@ -1229,7 +1445,7 @@ function renderTeams() {
   $('team-select').innerHTML = D.teams.map((t) => `<option value="${t.id}">${esc(t.name)}</option>`).join('');
   renderTeam();
 }
-$('team-select').addEventListener('change', (e) => { teamId = Number(e.target.value); store.set('team', teamId); renderTeam(); });
+$('team-select').addEventListener('change', (e) => { teamId = Number(e.target.value); store.set('team', teamId); renderTeam(); requestAnimationFrame(markScrollers); });
 const SLOTNAME = { 0: 'QB', 2: 'RB', 4: 'WR', 6: 'TE', 16: 'D/ST', 17: 'K', 20: 'Bench', 21: 'IR', 23: 'FLEX' };
 const HOW = { DRAFT: '📝 Draft', ADD: '🆓 Free agent', WAIVER: '⏳ Waivers', TRADE: '🔄 Trade' };
 function renderTeam() {
@@ -1253,7 +1469,7 @@ function renderTeam() {
   $('roster').innerHTML = `<thead><tr><th>Slot</th><th>Player</th><th>Pos</th><th class="r">Season pts</th><th class="r">Pos rank</th><th>Acquired</th></tr></thead><tbody>${roster.map((p) => {
     const elite = p.posRank && p.posRank <= 5 && p.pos !== 'K' && p.pos !== 'D/ST';
     return `<tr><td><span class="badge ${p.slot === 20 || p.slot === 21 ? 'slot-bench' : ''}">${SLOTNAME[p.slot] ?? '?'}</span></td>
-    <td style="white-space:normal;min-width:150px"><b>${esc(p.name)}</b> <small class="note">${esc(p.pro)}</small> ${elite ? E('⭐') : ''} ${p.injury ? `<span class="badge inj">🚑 ${esc(p.injury.replace('_', ' '))}</span>` : ''}</td>
+    <td style="white-space:normal;min-width:150px"><b>${esc(p.name)}</b> <small class="note">${esc(p.pro)}</small> <span class="pos m-only" data-p="${esc(p.pos)}">${esc(p.pos)}${p.posRank ? esc(p.posRank) : ''}</span> ${elite ? E('⭐') : ''} ${p.injury ? `<span class="badge inj">🚑 ${esc(p.injury.replace('_', ' '))}</span>` : ''}</td>
     <td><span class="pos" data-p="${esc(p.pos)}">${esc(p.pos)}</span></td><td class="r databar" style="--w:${Math.round((p.seasonPts / (maxPts || 1)) * 100)}"><b>${f1(p.seasonPts)}</b></td>
     <td class="r">${p.posRank ? esc(p.pos) + p.posRank : '—'}</td><td class="note">${HOW[p.how] ?? esc(p.how)}</td></tr>`;
   }).join('')}</tbody>`;
