@@ -2,9 +2,15 @@
 name: Build and deploy
 
 on:
+  # Times are UTC (ET is UTC-4 until early November, then UTC-5). Minute 7 avoids GitHub's busy top of the hour.
   schedule:
-    - cron: '0 11 * * *'   # every day, 7am ET (after Monday night's game on Tuesdays)
-    - cron: '0 23 * * *'   # every day, 7pm ET (picks up ices logged during the day)
+    - cron: '7 11 * * *'      # every day, ~7am ET (after Monday night's game on Tuesdays)
+    - cron: '7 23 * * *'      # every day, ~7pm ET (picks up ices logged during the day)
+    - cron: '7 13-23 * * 0'   # Sundays hourly, London games through the late afternoon slate
+    - cron: '7 0-4 * * 1'     # Sunday night game (early Monday UTC)
+    - cron: '7 0-4 * * 5'     # Thursday night game
+    - cron: '7 0-4 * * 2'     # Monday night game
+    - cron: '7 17-23 * * 6'   # Saturday games late in the season
   workflow_dispatch:       # "Run workflow" button for a manual refresh
   push:
     branches: [main]

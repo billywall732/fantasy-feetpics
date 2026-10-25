@@ -76,12 +76,17 @@ save(`boxscores-${SEASON}`, boxscores);
 console.log('Fetching NFL schedule...');
 const pro = await get(`${BASE}/${SEASON}?view=proTeamSchedules_wl`);
 const gameTimes = {};
+const kickoffs = {}; // week -> NFL team id -> kickoff time, for live game status
 for (const t of pro.settings.proTeams) {
   for (const [sp, gs] of Object.entries(t.proGamesByScoringPeriod || {})) {
-    for (const g of gs) (gameTimes[sp] ??= []).push(g.date);
+    for (const g of gs) {
+      (gameTimes[sp] ??= []).push(g.date);
+      (kickoffs[sp] ??= {})[t.id] = g.date;
+    }
   }
 }
 save('nfl-weeks', Object.fromEntries(Object.entries(gameTimes).map(([sp, ds]) => [sp, { first: Math.min(...ds), last: Math.max(...ds) }])));
+save('nfl-kickoffs', kickoffs);
 
 // Ice log from the league's Google Sheet (needs "anyone with the link can view").
 console.log('Fetching ice log...');

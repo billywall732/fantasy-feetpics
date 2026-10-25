@@ -409,6 +409,23 @@ td.titles .no-title { color: var(--muted); font-family: var(--font-display); fon
 .ice-bar i { background: linear-gradient(90deg, #9fd3ff, var(--ice)); }
 .cubes { letter-spacing: -2px; font-size: 15px; }
 
+/* Live games */
+.live-pill { background: color-mix(in oklab, var(--coral) 16%, var(--surface-solid)); color: var(--coral); }
+.live-game { border-top: 3px solid var(--coral); }
+.live-game .side .score { color: var(--ink-2); }
+.live-game .side.leading .score { color: var(--ink); text-shadow: 0 0 22px color-mix(in oklab, var(--accent) 40%, transparent); }
+.proj-line { font-size: 12px; color: var(--muted); font-weight: 600; font-variant-numeric: tabular-nums; }
+.game .tagline { justify-content: flex-start; flex-wrap: wrap; }
+.lineups .row.st-pre .pts { color: var(--muted); font-weight: 500; }
+.ice-live { display: grid; gap: 22px; margin-bottom: 24px; }
+.ice-live .sub { margin: 0; font-family: var(--font-display); font-weight: 800; font-size: 20px; text-transform: uppercase; letter-spacing: .02em; }
+.risk-list { list-style: none; margin: 0; padding: 4px 0; }
+.risk-list li { padding: 8px 14px; border-bottom: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; font-size: 13.5px; }
+.risk-list li:last-child { border-bottom: 0; }
+#ice-watch tr.on-hook { background: color-mix(in oklab, var(--ice) 10%, transparent); }
+#ice-watch .bar { min-width: 70px; }
+.live-head .eyebrow { display: inline-flex; align-items: center; gap: 4px; color: var(--coral); }
+
 /* Waiver wire & trades */
 .more-link { justify-self: center; border: 1px solid var(--line-strong); background: var(--surface); border-radius: 999px; padding: 9px 18px; font-weight: 700; font-size: 13.5px; cursor: pointer; color: var(--ink); }
 .more-link:hover { border-color: var(--accent); }
@@ -586,6 +603,8 @@ footer .wrap { padding-block: 18px 32px; display: flex; flex-wrap: wrap; gap: 8p
   .hl-score.high { color: var(--good); } .hl-score.low { color: var(--bad); }
   /* Got away: "dropped by" moves under the player */
   #wire-regrets tr > :nth-child(2) { display: none; }
+  #ice-watch tr > :nth-child(3), #ice-watch tr > :nth-child(4) { display: none; }
+  .proj-line { font-size: 11px; }
   .side.won b::after { content: "\00a0🏆"; }
   .wire-filters { align-items: stretch; }
   .wire-filters .chips { width: calc(100% + 32px); }
@@ -1316,21 +1335,41 @@ $('weekbar').addEventListener('click', (e) => {
   const b = e.target.closest('button'); if (!b) return;
   curWeek = Number(b.dataset.w); renderWeekbar(); renderGames(); requestAnimationFrame(markScrollers);
 });
-const lineupCol = (team, lineup, live) => {
+const kickTime = (ms) => new Date(ms).toLocaleString('en-US', { timeZone: 'America/New_York', weekday: 'short', hour: 'numeric', minute: '2-digit' });
+// mode: 'final' (week over), 'live' (games under way), 'pre' (before kickoff: projections only)
+const lineupCol = (team, lineup, mode) => {
   const starters = lineup.filter((p) => p.slot !== 20 && p.slot !== 21);
   const best = Math.max(...starters.map((p) => p.pts));
   return `<div><h4>${esc(team.abbrev)}</h4>${starters.map((p) => {
-    const cls = live ? '' : p.pts === best && best > 0 ? 'star' : p.pts <= 0 ? 'dud' : '';
-    return `<div class="row ${cls}"><span class="slot">${p.slot === 23 ? 'FLEX' : esc(p.pos)}</span><span class="nm">${cls === 'star' ? '⭐ ' : cls === 'dud' ? '🧊 ' : ''}${esc(p.name)} <small class="note">${esc(p.pro)}</small></span>
-    <span class="pts">${live ? (p.proj == null ? '—' : f1(p.proj)) + ' <small>proj</small>' : f1(p.pts)}</span></div>`;
+    let cls = '', icon = '', value;
+    if (mode === 'final') {
+      cls = p.pts === best && best > 0 ? 'star' : p.pts <= 0 ? 'dud' : '';
+      icon = cls === 'star' ? '⭐ ' : cls === 'dud' ? '🧊 ' : '';
+      value = f1(p.pts);
+    } else if (mode === 'live' && p.status !== 'pre') {
+      // Playing or done: points so far, with a 🧊 warning for a starter stuck on zero or less.
+      if (p.pts <= 0 && p.status !== 'bye') { cls = 'dud'; icon = '🧊 '; }
+      value = `${f1(p.pts)} <small>${p.status === 'live' ? '<span class="live-dot"></span>live' : p.status === 'bye' ? 'bye' : 'final'}</small>`;
+    } else {
+      value = `${p.proj == null ? '—' : f1(p.proj)} <small>${mode === 'live' && p.kickoff ? esc(kickTime(p.kickoff)) : 'proj'}</small>`;
+    }
+    return `<div class="row ${cls} st-${p.status || ''}"><span class="slot">${p.slot === 23 ? 'FLEX' : esc(p.pos)}</span><span class="nm">${icon}${esc(p.name)} <small class="note">${esc(p.pro)}</small></span>
+    <span class="pts">${value}</span></div>`;
   }).join('')}</div>`;
 };
 function renderGames() {
   const future = futureWeeks.includes(curWeek);
-  const live = !future && !D.teams.some((t) => t.weeks[curWeek]);
+  const open = !future && !D.teams.some((t) => t.weeks[curWeek]);
+  const live = open && D.matchups[curWeek]?.some((g) => g.live);
+  const mode = future ? 'future' : !open ? 'final' : live ? 'live' : 'pre';
   $('matchups-title').textContent = `Week ${curWeek}`;
-  $('matchups-note').textContent = future ? 'Upcoming matchups.' : live ? 'In progress. Numbers are ESPN projections for each starting lineup.' : 'Final scores. Open a game to see both starting lineups. ⭐ top scorer, 🧊 0 or fewer points.';
-  renderReport(future || live ? null : curWeek);
+  $('matchups-note').innerHTML = {
+    future: 'Upcoming matchups.',
+    final: 'Final scores. Open a game to see both starting lineups. ⭐ top scorer, 🧊 0 or fewer points.',
+    live: `<span class="live-dot"></span><b>Live.</b> Scores as of ${esc(fmtDate(L.built))}. The bar is each team's chance to win, from the score and the points still to play. Updates hourly on Sundays and during Thursday and Monday night games.`,
+    pre: `Kicks off ${L.weekStart ? esc(etDate(L.weekStart)) : 'Thursday'}. Numbers are ESPN projections for each starting lineup.`,
+  }[mode];
+  renderReport(mode === 'final' ? curWeek : null);
   if (future) {
     $('games').innerHTML = D.upcoming[curWeek].map((g) => {
       const h = T[g.home], a = T[g.away];
@@ -1342,23 +1381,44 @@ function renderGames() {
   }
   $('games').innerHTML = D.matchups[curWeek].map((g) => {
     const h = T[g.home], a = T[g.away];
-    const hs = live ? g.homeProj : g.homeScore, as = live ? g.awayProj : g.awayScore;
-    const cls = (side) => (live ? 'proj' : g.winner === side ? 'won' : '');
+    const lineups = `<details><summary>📋 Starting lineups</summary><div class="lineups">
+      ${lineupCol(h, g.homeLineup, mode)}${lineupCol(a, g.awayLineup, mode)}
+    </div></details>`;
+
+    if (mode === 'live' && g.live) {
+      const L2 = g.live, hw = L2.homeWin, aw = Math.round((100 - hw) * 10) / 10;
+      const leader = hw >= 50 ? 'HOME' : 'AWAY';
+      const close = Math.abs(hw - 50) < 12;
+      const left = (s) => s.toPlay + s.playing;
+      const tag = `<span class="pill live-pill"><span class="live-dot"></span>Live</span>${close ? `<span class="pill gold">${E('😬')} Toss-up</span>` : ''}`;
+      const side = (t, s, key, away) => `<div class="side ${away ? 'away' : ''} ${leader === key ? 'leading' : ''}"><b>${esc(t.name)}</b><small>${t.w}-${t.l} · ${esc(t.owner)}</small>
+        <span class="score">${f1(s.score)}</span><span class="proj-line">Proj ${f1(s.proj)} · ${left(s)} to play</span></div>`;
+      return `<div class="panel game lift live-game"><div class="tagline">${tag}</div><div class="sides">
+        ${side(h, L2.home, 'HOME', false)}<span class="vs">VS</span>${side(a, L2.away, 'AWAY', true)}
+      </div><div class="winbar" role="img" aria-label="Win chance: ${esc(h.name)} ${hw}%, ${esc(a.name)} ${aw}%"><i style="width:${hw}%"></i></div>
+      <div class="winodds"><span>${Math.round(hw)}% to win</span><span>${Math.round(aw)}% to win</span></div>${lineups}</div>`;
+    }
+
+    if (mode === 'pre') {
+      const hs = g.homeProj ?? 0, as = g.awayProj ?? 0;
+      const share = Math.round((hs / ((hs + as) || 1)) * 100);
+      return `<div class="panel game lift"><div class="tagline"><span class="pill muted">🗓️ Projected</span></div><div class="sides">
+        <div class="side proj"><b>${esc(h.name)}</b><small>${h.w}-${h.l} · ${esc(h.owner)}</small><span class="score">${f1(hs)}</span></div>
+        <span class="vs">VS</span>
+        <div class="side away proj"><b>${esc(a.name)}</b><small>${a.w}-${a.l} · ${esc(a.owner)}</small><span class="score">${f1(as)}</span></div>
+      </div><div class="winbar" title="Share of projected points"><i style="width:${share}%"></i></div><div class="winodds"><span>${share}% of projected points</span><span>${100 - share}%</span></div>${lineups}</div>`;
+    }
+
+    const hs = g.homeScore, as = g.awayScore;
     const margin = Math.abs(hs - as);
-    let tag = '';
-    if (live) tag = `<span class="pill" style="background:color-mix(in oklab, var(--coral) 16%, var(--surface-solid));color:var(--coral)"><span class="live-dot"></span>Projected</span>`;
-    else if (margin >= 40) tag = `<span class="pill hot">${E('💥')} Blowout · ${f1(margin)}</span>`;
-    else if (margin < 5) tag = `<span class="pill gold">${E('😬')} Nail-biter · ${f2(margin)}</span>`;
-    else tag = `<span class="pill muted">Won by ${f1(margin)}</span>`;
-    const share = Math.round((hs / (hs + as)) * 100);
-    return `<div class="panel game lift ${live ? '' : 'has-winner'}"><div class="tagline">${tag}</div><div class="sides">
-      <div class="side ${cls('HOME')}"><b>${esc(h.name)}</b><small>${h.w}-${h.l} · ${esc(h.owner)}</small><span class="score">${f1(hs)}</span></div>
-      <span class="vs">${live ? 'VS' : 'FINAL'}</span>
-      <div class="side away ${cls('AWAY')}"><b>${esc(a.name)}</b><small>${a.w}-${a.l} · ${esc(a.owner)}</small><span class="score">${f1(as)}</span></div>
-    </div>${live ? `<div class="winbar" title="Share of projected points"><i style="width:${share}%"></i></div><div class="winodds"><span>${share}% of projected points</span><span>${100 - share}%</span></div>` : ''}
-    <details><summary>📋 Starting lineups</summary><div class="lineups">
-      ${lineupCol(h, g.homeLineup, live)}${lineupCol(a, g.awayLineup, live)}
-    </div></details></div>`;
+    const tag = margin >= 40 ? `<span class="pill hot">${E('💥')} Blowout · ${f1(margin)}</span>`
+      : margin < 5 ? `<span class="pill gold">${E('😬')} Nail-biter · ${f2(margin)}</span>`
+      : `<span class="pill muted">Won by ${f1(margin)}</span>`;
+    return `<div class="panel game lift has-winner"><div class="tagline">${tag}</div><div class="sides">
+      <div class="side ${g.winner === 'HOME' ? 'won' : ''}"><b>${esc(h.name)}</b><small>${h.w}-${h.l} · ${esc(h.owner)}</small><span class="score">${f1(hs)}</span></div>
+      <span class="vs">FINAL</span>
+      <div class="side away ${g.winner === 'AWAY' ? 'won' : ''}"><b>${esc(a.name)}</b><small>${a.w}-${a.l} · ${esc(a.owner)}</small><span class="score">${f1(as)}</span></div>
+    </div>${lineups}</div>`;
   }).join('');
 }
 
@@ -1388,6 +1448,36 @@ function iceStatus() {
   const finals = D.ice.weeks.filter((w) => w.final);
   return { finals, latest: finals.at(-1), pending: D.ice.weeks.find((w) => !w.final) };
 }
+// The week in progress, from Thursday's kickoff: who's locked in and who's at risk.
+function liveIce(wk) {
+  const lv = wk.live, mult = wk.playoff ? D.ice.multiplier : 1;
+  const byTeam = {};
+  for (const r of lv.locked) (byTeam[r.teamId] ??= []).push(r);
+  const locked = Object.entries(byTeam).map(([teamId, rows]) => `<div class="panel ice-card lift">
+      <div class="ice-count"><b>${rows.length * mult}</b><span>${rows.length * mult === 1 ? 'ice' : 'ices'}</span></div>
+      <div class="ice-who"><strong>${esc(iceOwner(T[teamId].ownerId))}</strong><small>${esc(T[teamId].name)}</small>
+      <ul>${rows.map((r) => `<li>${E('🥚')} ${esc(r.name)} <small class="note">${esc(r.pos)} · ${esc(r.pro)}</small> scored ${f2(r.pts)}</li>`).join('')}</ul></div></div>`).join('');
+  const scoreless = lv.scoreless.map((r) => `<li><span class="live-dot"></span><b>${esc(iceOwner(T[r.teamId].ownerId))}</b> · ${esc(r.name)} <small class="note">${esc(r.pos)} · ${esc(r.pro)}</small> <span class="pill muted">${f2(r.pts)} so far</span></li>`).join('');
+  const watch = lv.lowest.filter((x) => x.chance >= 5);
+  const top = watch[0];
+  const rows = watch.map((x) => `<tr class="${x === top ? 'on-hook' : ''}">
+      <td class="team-cell"><b>${x === top ? E('🧊') + ' ' : ''}${esc(iceOwner(T[x.teamId].ownerId))}</b><small>${esc(T[x.teamId].name)}</small></td>
+      <td class="r"><b>${f1(x.score)}</b><small class="note m-only-block">proj ${f1(x.proj)}</small></td>
+      <td class="r">${f1(x.proj)}</td><td class="r">${x.toPlay + x.playing}</td>
+      <td><div style="display:flex;align-items:center;gap:8px"><div class="bar ice-bar"><i style="width:${x.chance}%"></i></div><b class="num">${x.chance}%</b></div></td></tr>`).join('');
+  return `<div class="due-head open live-head">
+      <div><span class="eyebrow"><span class="live-dot"></span>Week ${wk.week} · live${wk.playoff ? ` · playoffs, ices ×${D.ice.multiplier}` : ''}</span>
+      <h3>Due ${etDate(wk.deadline)}</h3></div>
+      <span class="due-status">As of ${esc(fmtDate(lv.asOf))}</span></div>
+    <div class="ice-live">
+      <div class="block"><h4 class="sub">${E('🔒')} Locked in</h4>
+        ${locked ? `<div class="ice-cards">${locked}</div>` : '<p class="note">No ices locked in yet. A starter whose game has finished at 0 or fewer points shows up here.</p>'}</div>
+      ${scoreless ? `<div class="block"><h4 class="sub">${E('⚠️')} Scoreless so far</h4><p class="note">Starters on zero or less in games still being played.</p><ul class="risk-list panel">${scoreless}</ul></div>` : ''}
+      <div class="block"><h4 class="sub">${E('📉')} Lowest score watch</h4>
+        <p class="note">Each team's chance of finishing with the week's lowest score, from its current score, projected final and points still to play.${top ? ` ${esc(iceOwner(T[top.teamId].ownerId))} is most at risk right now.` : ''}</p>
+        <div class="panel scroll"><table id="ice-watch"><thead><tr><th>Owner</th><th class="r">Score</th><th class="r">Proj</th><th class="r">To play</th><th>Chance of lowest</th></tr></thead><tbody>${rows}</tbody></table></div></div>
+    </div>`;
+}
 function renderIce() {
   const I = D.ice;
   const now = Date.now();
@@ -1414,7 +1504,9 @@ function renderIce() {
   if (latest && latest.deadline > now) {
     html += head(latest, true) + cards(latest);
   }
-  if (pending) {
+  if (pending && pending.live) {
+    html += liveIce(pending);
+  } else if (pending) {
     const shouldBeFinal = now > pending.deadline - 60 * 3600e3;
     html += `<div class="panel pending-note">${E('⏳')} <b>Week ${pending.week}${pending.playoff ? ' (playoffs, ices doubled)' : ''} is ${shouldBeFinal ? 'over' : 'still being played'}.</b>
       ${shouldBeFinal ? `This page was last refreshed ${fmtDate(L.built)}, before the week's scores were final. Refresh the data to see who owes.` : `Its ices will be due ${etDate(pending.deadline)} and will show here once the scores are final.`}</div>`;
@@ -1677,10 +1769,19 @@ function buildHeadlines() {
   const now = Date.now();
   const { latest, pending } = iceStatus();
   const short = (ms) => etDate(ms, { weekday: 'short' });
+  // Live scores lead the ticker while games are on.
+  for (const g of D.matchups[L.currentWeek] || []) {
+    if (g.live) h.push(`🔴 ${T[g.home].name} ${f1(g.live.home.score)}, ${T[g.away].name} ${f1(g.live.away.score)} (${Math.round(Math.max(g.live.homeWin, 100 - g.live.homeWin))}% ${T[g.live.homeWin >= 50 ? g.home : g.away].abbrev})`);
+  }
   if (latest && latest.deadline > now) {
     const names = latest.owed.map((o) => `${iceOwner(o.ownerId)} (${o.ices})`).join(', ');
     h.push(names ? `🧊 Ices due ${short(latest.deadline)}: ${names}` : `🎉 No ices owed for week ${latest.week}`);
   } else if (pending) h.push(`🧊 Week ${pending.week} ices due ${short(pending.deadline)}`);
+  if (pending?.live) {
+    const top = pending.live.lowest[0];
+    if (top) h.push(`🧊 Ice watch: ${iceOwner(T[top.teamId].ownerId)} has a ${top.chance}% chance of the week's lowest score`);
+    for (const r of pending.live.locked) h.push(`🔒 ${iceOwner(T[r.teamId].ownerId)} owes an ice: ${r.name} finished with ${f2(r.pts)}`);
+  }
   const len = streakLen;
   const hot = D.teams.filter((t) => t.streak[0] === 'W').sort((a, b) => len(b) - len(a))[0];
   const cold = D.teams.filter((t) => t.streak[0] === 'L').sort((a, b) => len(b) - len(a))[0];

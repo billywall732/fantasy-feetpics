@@ -96,11 +96,55 @@ function optimal(entries) {
   return total;
 }
 
-const lineupOf = (side) =>
+// ---------- Live games ----------
+// A player's game is "pre" before kickoff, "live" for about 3.5 hours after, then "final". No game that week is a bye.
+const kickoffs = existsSync(new URL('data/nfl-kickoffs.json', import.meta.url)) ? read('data/nfl-kickoffs.json') : {};
+const weekSpans = existsSync(new URL('data/nfl-weeks.json', import.meta.url)) ? read('data/nfl-weeks.json') : {};
+const NOW = Date.now();
+const GAME_LENGTH = 3.5 * 3600e3;
+function gameState(sp, proTeamId) {
+  const k = kickoffs[sp]?.[proTeamId];
+  if (!k) return { status: 'bye', left: 0 };
+  if (NOW < k) return { status: 'pre', left: 1, kickoff: k };
+  if (NOW >= k + GAME_LENGTH) return { status: 'final', left: 0, kickoff: k };
+  return { status: 'live', left: Math.max(0.05, 1 - (NOW - k) / (3.1 * 3600e3)), kickoff: k };
+}
+// Normal CDF, for win chances from projected margin and remaining uncertainty.
+function normCdf(x) {
+  const t = 1 / (1 + 0.3275911 * Math.abs(x) / Math.SQRT2);
+  const erf = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-(x * x) / 2);
+  return 0.5 * (1 + Math.sign(x) * erf);
+}
+// A team's spread of possible outcomes shrinks as its projected points get played: about ±25 pts for a full 140-pt week.
+const spreadFor = (remaining) => 2.1 * Math.sqrt(Math.max(0, remaining));
+function liveSide(side, sp) {
+  const starters = side.rosterForCurrentScoringPeriod.entries.filter((e) => isStarter(e.lineupSlotId));
+  let score = 0, est = 0, toPlay = 0, playing = 0;
+  for (const e of starters) {
+    const g = gameState(sp, e.playerPoolEntry.player.proTeamId);
+    const p = e.playerPoolEntry.appliedStatTotal || 0;
+    const proj = e.playerPoolEntry.player.stats?.find((s) => s.statSourceId === 1 && s.scoringPeriodId === sp)?.appliedTotal || 0;
+    score += p;
+    est += g.status === 'pre' ? proj : g.status === 'live' ? p + proj * g.left : p;
+    if (g.status === 'pre') toPlay++;
+    if (g.status === 'live') playing++;
+  }
+  // ESPN's own live projection when it has one; ours otherwise.
+  const proj = side.totalProjectedPoints != null && side.totalProjectedPoints > 0 ? side.totalProjectedPoints : est;
+  return { score: r2(score), proj: r1(Math.max(proj, score)), remaining: Math.max(0, proj - score), toPlay, playing };
+}
+const winChance = (a, b) => {
+  const sd = Math.hypot(spreadFor(a.remaining), spreadFor(b.remaining));
+  if (sd < 0.5) return a.score > b.score ? 1 : a.score < b.score ? 0 : 0.5;
+  return normCdf((a.proj - b.proj) / sd);
+};
+
+const lineupOf = (side, sp) =>
   side.rosterForCurrentScoringPeriod.entries
     .map((e) => {
       const p = e.playerPoolEntry.player;
       const proj = p.stats?.find((s) => s.statSourceId === 1)?.appliedTotal;
+      const g = gameState(sp, p.proTeamId);
       return {
         slot: e.lineupSlotId,
         name: p.fullName,
@@ -108,6 +152,8 @@ const lineupOf = (side) =>
         pro: PRO[p.proTeamId] ?? '',
         pts: r2(e.playerPoolEntry.appliedStatTotal || 0),
         proj: proj == null ? null : r1(proj),
+        status: g.status,
+        kickoff: g.kickoff ?? null,
       };
     })
     .sort((a, b) => SLOT_ORDER.indexOf(a.slot) - SLOT_ORDER.indexOf(b.slot));
@@ -138,6 +184,13 @@ for (const [wk, games] of Object.entries(box)) {
         }
       }
     }
+    // The week in progress: live scores, projected finals and win chances once its first game has kicked off.
+    const inProgress = !doneWeeks.includes(w) && NOW >= (weekSpans[w]?.first ?? Infinity);
+    let live = null;
+    if (inProgress) {
+      const h = liveSide(m.home, w), a = liveSide(m.away, w);
+      live = { home: h, away: a, homeWin: Math.round(winChance(h, a) * 1000) / 10 };
+    }
     return {
       home: m.home.teamId,
       away: m.away.teamId,
@@ -146,8 +199,9 @@ for (const [wk, games] of Object.entries(box)) {
       homeProj: m.home.totalProjectedPoints == null ? null : r1(m.home.totalProjectedPoints),
       awayProj: m.away.totalProjectedPoints == null ? null : r1(m.away.totalProjectedPoints),
       winner: m.winner,
-      homeLineup: lineupOf(m.home),
-      awayLineup: lineupOf(m.away),
+      live,
+      homeLineup: lineupOf(m.home, w),
+      awayLineup: lineupOf(m.away, w),
     };
   });
 }
@@ -472,6 +526,41 @@ for (const [spKey, games] of Object.entries(box)) {
   const byTeam = {};
   for (const e of entries) (byTeam[e.teamId] ??= { teamId: e.teamId, ownerId: team[e.teamId].ownerId, ices: 0, reasons: [] }).ices += e.ices;
   for (const e of entries) byTeam[e.teamId].reasons.push(e);
+
+  // The week in progress (from Thursday's kickoff): ices already locked in, and who's at risk.
+  let live = null;
+  if (!final && NOW >= (nflWeeks[sp]?.first ?? Infinity)) {
+    const locked = [], scoreless = [];
+    for (const s of sides) {
+      for (const e of s.rosterForCurrentScoringPeriod.entries.filter((e) => isStarter(e.lineupSlotId))) {
+        const g = gameState(sp, e.playerPoolEntry.player.proTeamId);
+        if (pts(e) > 0) continue;
+        const row = { teamId: s.teamId, ...who(e), pro: PRO[e.playerPoolEntry.player.proTeamId] ?? '' };
+        if (g.status === 'final') locked.push(row);
+        else if (g.status === 'live') scoreless.push(row);
+      }
+    }
+    // Chance of finishing with the week's lowest score: simulate each team around its projected final.
+    const proj = sides.map((s) => ({ teamId: s.teamId, ...liveSide(s, sp) }));
+    let seed = 7;
+    const rand = () => ((seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648);
+    const gauss = () => Math.sqrt(-2 * Math.log(rand() || 1e-9)) * Math.cos(2 * Math.PI * rand());
+    const lowCount = Object.fromEntries(proj.map((p) => [p.teamId, 0]));
+    const RUNS = 5000;
+    for (let i = 0; i < RUNS; i++) {
+      let lowId = null, low = Infinity;
+      for (const p of proj) {
+        const v = p.proj + gauss() * spreadFor(p.remaining);
+        if (v < low) { low = v; lowId = p.teamId; }
+      }
+      lowCount[lowId]++;
+    }
+    const lowest = proj
+      .map((p) => ({ teamId: p.teamId, score: p.score, proj: p.proj, toPlay: p.toPlay, playing: p.playing, chance: Math.round((lowCount[p.teamId] / RUNS) * 100) }))
+      .sort((a, b) => b.chance - a.chance);
+    live = { asOf: NOW, locked, scoreless, lowest };
+  }
+
   iceWeeks.push({
     week: sp,
     matchupPeriod: periodOf[sp],
@@ -479,6 +568,7 @@ for (const [spKey, games] of Object.entries(box)) {
     final,
     deadline: deadlineFor(sp),
     owed: Object.values(byTeam).sort((a, b) => b.ices - a.ices),
+    live,
   });
 }
 for (const t of teams) for (const w of doneWeeks) t.weeks[w].ices = iceWeeks.find((x) => x.week === w)?.owed.find((o) => o.teamId === t.id)?.ices ?? 0;
@@ -642,7 +732,7 @@ const records = [
 
 // ---------- Output ----------
 const model = {
-  league: { name: cur.settings.name.trim(), season: SEASON, currentWeek, lastWeek, regWeeks, playoffTeams, size: teams.length, trades, updated: cur.status.standingsUpdateDate, built: Date.now(), leagueId: env.LEAGUE_ID },
+  league: { name: cur.settings.name.trim(), season: SEASON, currentWeek, lastWeek, regWeeks, playoffTeams, size: teams.length, trades, updated: cur.status.standingsUpdateDate, built: Date.now(), leagueId: env.LEAGUE_ID, weekStart: weekSpans[currentWeek]?.first ?? null, weekEnd: weekSpans[currentWeek]?.last ?? null },
   teams: teams.sort((a, b) => a.seed - b.seed),
   matchups,
   upcoming,
