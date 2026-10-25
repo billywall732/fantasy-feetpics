@@ -8,7 +8,7 @@ const SEASON = Number(env.SEASON);
 
 const cur = read(`data/season-${SEASON}.json`);
 const box = read(`data/boxscores-${SEASON}.json`);
-const txns = read(`data/transactions-${SEASON}.json`);
+const txns = [...new Map(read(`data/transactions-${SEASON}.json`).map((x) => [x.id, x])).values()]; // one per transaction ID
 const playerIndex = new Map(read('data/players.json').map((p) => [p.id, p]));
 const playerStats = new Map(read('data/player-stats.json').map((p) => [p.id, p]));
 

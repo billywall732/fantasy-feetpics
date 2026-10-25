@@ -410,6 +410,8 @@ td.titles .no-title { color: var(--muted); font-family: var(--font-display); fon
 .cubes { letter-spacing: -2px; font-size: 15px; }
 
 /* Waiver wire & trades */
+.more-link { justify-self: center; border: 1px solid var(--line-strong); background: var(--surface); border-radius: 999px; padding: 9px 18px; font-weight: 700; font-size: 13.5px; cursor: pointer; color: var(--ink); }
+.more-link:hover { border-color: var(--accent); }
 .wire-filters { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; }
 .feed li { grid-template-columns: minmax(0, 1fr); }
 .feed .feed-head { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; justify-content: space-between; }
@@ -458,19 +460,23 @@ footer .wrap { padding-block: 18px 32px; display: flex; flex-wrap: wrap; gap: 8p
 }
 
 /* ---------- Phones (laptop layout above is untouched) ---------- */
-.bottom-nav, .more-sheet, .swipe-hint, .m-only { display: none; }
+.bottom-nav, .more-sheet, .swipe-hint, .m-only, .m-only-block { display: none; }
 @media (max-width: 640px) {
   body { font-size: 14px; }
   .m-only { display: inline-flex; }
 
-  /* Header: one-line title, compact facts, pills in a single swipeable row */
+  /* Header: ball beside the title, info pills wrapping full width underneath */
   .masthead .wrap { padding-block: 16px 24px; gap: 14px; }
-  .brand { gap: 10px; }
-  .ball { width: 42px; height: 42px; }
-  .masthead h1 { font-size: 10.6vw; white-space: nowrap; }
-  .masthead .eyebrow { font-size: 10.5px; }
-  .masthead .meta { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: -16px; padding-inline: 16px; }
-  .masthead .meta span { font-size: 12px; white-space: nowrap; }
+  .brand { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 10px; align-items: center; width: 100%; }
+  .brand > div { display: contents; }
+  .ball { width: 42px; height: 42px; grid-row: 1 / span 2; }
+  .masthead .eyebrow { font-size: 10.5px; grid-column: 2; align-self: end; }
+  .masthead h1 { font-size: 10.6vw; white-space: nowrap; grid-column: 2; margin-top: 2px; }
+  .masthead .meta { grid-column: 1 / -1; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .masthead .meta span { font-size: 12px; white-space: nowrap; padding: 3px 9px; }
+  /* The four stat cards only on Standings, so other tabs start closer to their content */
+  :root:not([data-view="standings"]) .facts { display: none; }
+  .m-only-block { display: block; }
   .facts { gap: 8px; }
   .fact { padding: 8px 10px; }
   .fact b { font-size: 22px; }
@@ -561,10 +567,26 @@ footer .wrap { padding-block: 18px 32px; display: flex; flex-wrap: wrap; gap: 8p
   .swipe-hint { display: block; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); text-align: right; margin-bottom: -4px; }
   .scroll.has-more:not(.at-end) { -webkit-mask: linear-gradient(90deg, #000 calc(100% - 24px), rgb(0 0 0 / .25)); mask: linear-gradient(90deg, #000 calc(100% - 24px), rgb(0 0 0 / .25)); }
 
-  /* Controls that wrapped into piles become swipeable rows */
-  .chips, .weekbar { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: -16px; padding: 2px 16px 4px; }
-  .chip, .weekbar button { flex: none; }
-  .weekbar .note { flex: none; }
+  /* Controls: team picker becomes a dropdown, weeks become a tidy 7-across grid */
+  #chart-teams { display: none; }
+  .weekbar { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+  .weekbar .note { display: none; }
+  .weekbar button { min-width: 0; padding: 8px 0; }
+  .chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: -16px; padding: 2px 16px 4px; }
+  .chip { flex: none; }
+  /* An odd last tile spans the row instead of sitting alone */
+  .tiles > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+  /* Long team names: two lines at most in the wide grids */
+  #heat .team-cell b, #report .team-cell b, #ice-grid .team-cell b { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  /* Weekly report: drop the opponent note and keep only each team's top scorer */
+  #report td:nth-child(2) .note, #report td.top3 div:not(:first-child) { display: none; }
+  /* Highs and lows: the score sits under each team name */
+  #highs-lows tr:not(.avg-row) > :nth-child(3), #highs-lows tr:not(.avg-row) > :nth-child(5) { display: none; }
+  .hl-score { font-weight: 800; font-size: 14px; margin-top: 2px; }
+  .hl-score.high { color: var(--good); } .hl-score.low { color: var(--bad); }
+  /* Got away: "dropped by" moves under the player */
+  #wire-regrets tr > :nth-child(2) { display: none; }
+  .side.won b::after { content: "\00a0🏆"; }
   .wire-filters { align-items: stretch; }
   .wire-filters .chips { width: calc(100% + 32px); }
   select { width: 100%; }
@@ -669,6 +691,7 @@ footer .wrap { padding-block: 18px 32px; display: flex; flex-wrap: wrap; gap: 8p
           <p>Pick a team to trace it against the league. Hover or tap a week for every score.</p>
         </div>
         <div class="chips" id="chart-teams" role="group" aria-label="Highlighted team"></div>
+        <label class="m-only-block note" for="chart-select">Highlight&nbsp; <select id="chart-select"></select></label>
         <div class="panel chart" id="chart"></div>
       </div>
       <div class="block defer">
@@ -810,6 +833,7 @@ footer .wrap { padding-block: 18px 32px; display: flex; flex-wrap: wrap; gap: 8p
           <label class="note" for="wire-team">Team&nbsp; <select id="wire-team"></select></label>
         </div>
         <div class="panel"><ul class="moves feed" id="wire-log"></ul></div>
+        <button type="button" class="more-link" id="wire-more" hidden></button>
       </div>
     </section>
 
@@ -985,6 +1009,7 @@ const rendered = new Set();
 function show(id) {
   if (!VIEWS.some(([v]) => v === id)) id = 'standings';
   currentView = id;
+  document.documentElement.dataset.view = id;
   if (!rendered.has(id)) { RENDER[id](); rendered.add(id); }
   for (const [v] of VIEWS) $('view-' + v).hidden = v !== id;
   for (const a of $('tabs').children) {
@@ -1189,7 +1214,12 @@ let chartTeam = Number(store.get('chartTeam')) || D.teams[0].id;
 if (!T[chartTeam]) chartTeam = D.teams[0].id;
 function renderChips() {
   $('chart-teams').innerHTML = D.teams.map((t) => `<button class="chip" aria-pressed="${t.id === chartTeam}" data-id="${t.id}">${esc(t.name)}</button>`).join('');
+  // Phones use a dropdown instead of the row of chips.
+  $('chart-select').innerHTML = D.teams.map((t) => `<option value="${t.id}"${t.id === chartTeam ? ' selected' : ''}>${esc(t.name)}</option>`).join('');
 }
+$('chart-select').addEventListener('change', (e) => {
+  chartTeam = Number(e.target.value); store.set('chartTeam', chartTeam); renderChips(); drawChart();
+});
 $('chart-teams').addEventListener('click', (e) => {
   const b = e.target.closest('button'); if (!b) return;
   chartTeam = Number(b.dataset.id); store.set('chartTeam', chartTeam); renderChips(); drawChart();
@@ -1259,14 +1289,16 @@ function drawChart() {
 let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (!$('view-standings').hidden) drawChart(); }, 120); });
 
 /* Highs and lows */
+// Team cell with the score repeated underneath; that copy only shows on phones, where the score columns are hidden.
+const hlCell = (x, kind) => { const t = T[x.teamId]; return `<td class="team-cell"><b>${esc(t.name)}</b><small>${esc(t.owner)}</small><span class="hl-score ${kind} m-only-block">${f2(x.score)}</span></td>`; };
 function renderHighsLows() {
   const hl = D.highsLows;
   const avg = hl.reduce((s, x) => s + x.diff, 0) / hl.length;
   const maxGap = Math.max(...hl.map((x) => x.diff));
   $('highs-lows').innerHTML = `<thead><tr><th>Week</th><th>High</th><th class="r">Score</th><th>Low</th><th class="r">Score</th><th class="r">Gap</th></tr></thead><tbody>${hl.map((x) => `
-    <tr><td class="seed">${x.week}</td>${teamCell(T[x.high.teamId])}<td class="r pos-val"><b>${E('🚀')} ${f2(x.high.score)}</b></td>${teamCell(T[x.low.teamId])}<td class="r neg-val"><b>${E('🪫')} ${f2(x.low.score)}</b></td>
+    <tr><td class="seed">${x.week}</td>${hlCell(x.high, 'high')}<td class="r pos-val"><b>${E('🚀')} ${f2(x.high.score)}</b></td>${hlCell(x.low, 'low')}<td class="r neg-val"><b>${E('🪫')} ${f2(x.low.score)}</b></td>
     <td class="r databar" style="--w:${Math.round((x.diff / maxGap) * 100)}">${slot(x.diff === maxGap ? '😱' : '')}<b>${f2(x.diff)}</b></td></tr>`).join('')}
-    <tr><td></td><td colspan="4"><b>Average gap</b></td><td class="r"><b>${f2(avg)}</b></td></tr></tbody>`;
+    <tr class="avg-row"><td></td><td colspan="4"><b>Average gap</b></td><td class="r"><b>${f2(avg)}</b></td></tr></tbody>`;
 }
 
 /* ---------- Matchups ---------- */
@@ -1513,7 +1545,7 @@ function renderWire() {
     <tr><td class="team-cell" style="min-width:160px"><b>${i === 0 ? E('💎') + ' ' : ''}${esc(p.name)} <small class="note">${esc(p.pos)}</small></b><small>${esc(T[p.teamId].name)}</small></td>
     <td>${E(HOWICON[p.type] || '➕')} Week ${p.week}</td><td class="r">${p.starts}</td><td class="r"><b>${f1(p.pts)}</b></td></tr>`).join('')}</tbody>`;
   $('wire-regrets').innerHTML = W.regrets.length ? `<thead><tr><th>Player</th><th>Dropped</th><th class="r">Points since</th></tr></thead><tbody>${W.regrets.map((d) => `
-    <tr><td class="team-cell" style="min-width:150px"><b>${esc(d.name)} <small class="note">${esc(d.pos)}</small></b><small>Now with ${esc(T[d.laterTeamId].name)}</small></td>
+    <tr><td class="team-cell" style="min-width:150px"><b>${esc(d.name)} <small class="note">${esc(d.pos)}</small></b><small>Now with ${esc(T[d.laterTeamId].name)}</small><small class="m-only-block">Dropped by ${esc(T[d.teamId].name)}, week ${d.week}</small></td>
     <td style="white-space:normal">${esc(T[d.teamId].name)}, week ${d.week}</td><td class="r">${slot(d.laterPts >= 40 ? '😭' : '')}<b>${f1(d.laterPts)}</b></td></tr>`).join('')}</tbody>`
     : '<tbody><tr><td class="note">No dropped player has scored for another team yet.</td></tr></tbody>';
 
@@ -1531,10 +1563,16 @@ function renderWire() {
   $('wire-team').value = wireTeam;
   renderWireLog();
 }
+// The log shows the latest moves first; "Show all" reveals the rest.
+const WIRE_PAGE = 12;
+let wireShowAll = false;
 function renderWireLog() {
   const feed = D.wire.feed.filter((m) => (wireType === 'all' || m.type === wireType) && (wireTeam === 'all' || m.teamId === Number(wireTeam)));
-  $('wire-log-note').textContent = `${feed.length} of ${D.wire.feed.length} moves, newest first.`;
-  $('wire-log').innerHTML = feed.length ? feed.map((m) => `<li>
+  const shown = wireShowAll ? feed : feed.slice(0, WIRE_PAGE);
+  $('wire-log-note').textContent = `${feed.length} ${feed.length === 1 ? 'move' : 'moves'}${feed.length < D.wire.feed.length ? ` of ${D.wire.feed.length}` : ''}, newest first.`;
+  $('wire-more').hidden = feed.length <= WIRE_PAGE;
+  $('wire-more').textContent = wireShowAll ? 'Show fewer' : `Show all ${feed.length} moves`;
+  $('wire-log').innerHTML = shown.length ? shown.map((m) => `<li>
     <div class="feed-head"><b>${esc(T[m.teamId].name)}</b><span class="pill ${m.type === 'WAIVER' ? 'violet' : 'muted'}">${m.type === 'WAIVER' ? '⏳ Waiver claim' : '🆓 Free agent'}</span></div>
     ${m.adds.map((a) => `<span class="add">➕ ${esc(a.name)} (${esc(a.pos)})</span>`).join('')}
     ${m.drops.map((a) => `<span class="drop">➖ ${esc(a.name)} (${esc(a.pos)})</span>`).join('')}
@@ -1546,7 +1584,11 @@ $('wire-type').addEventListener('click', (e) => {
   for (const c of $('wire-type').children) c.setAttribute('aria-pressed', String(c.dataset.k === wireType));
   renderWireLog();
 });
-$('wire-team').addEventListener('change', (e) => { wireTeam = e.target.value; renderWireLog(); });
+$('wire-team').addEventListener('change', (e) => { wireTeam = e.target.value; wireShowAll = false; renderWireLog(); });
+$('wire-more').addEventListener('click', () => {
+  wireShowAll = !wireShowAll; renderWireLog();
+  if (!wireShowAll) $('wire-log').scrollIntoView({ block: 'nearest' });
+});
 
 /* ---------- Draft ---------- */
 function renderDraft() {

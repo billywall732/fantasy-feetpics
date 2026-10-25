@@ -34,7 +34,8 @@ for (let sp = 0; sp <= latest; sp++) {
   const t = await league(SEASON, ['mTransactions2'], `&scoringPeriodId=${sp}`);
   transactions.push(...(t.transactions || []));
 }
-save(`transactions-${SEASON}`, transactions);
+// ESPN returns the current week's transactions under more than one period, so keep each ID once.
+save(`transactions-${SEASON}`, [...new Map(transactions.map((x) => [x.id, x])).values()]);
 
 // League activity feed: the only place ESPN lists which players moved in a trade.
 const activity = [];
