@@ -117,21 +117,21 @@ function normCdf(x) {
 }
 // A team's spread of possible outcomes shrinks as its projected points get played: about ±25 pts for a full 140-pt week.
 const spreadFor = (remaining) => 2.1 * Math.sqrt(Math.max(0, remaining));
+// Live projected final: actual points for finished players, actual plus the unplayed share of the
+// projection for players mid-game, and the full projection only for players who haven't kicked off.
+// (ESPN's team-level projected total stays at its pre-game number, so it isn't used once games start.)
 function liveSide(side, sp) {
   const starters = side.rosterForCurrentScoringPeriod.entries.filter((e) => isStarter(e.lineupSlotId));
-  let score = 0, est = 0, toPlay = 0, playing = 0;
+  let score = 0, remaining = 0, toPlay = 0, playing = 0;
   for (const e of starters) {
     const g = gameState(sp, e.playerPoolEntry.player.proTeamId);
     const p = e.playerPoolEntry.appliedStatTotal || 0;
     const proj = e.playerPoolEntry.player.stats?.find((s) => s.statSourceId === 1 && s.scoringPeriodId === sp)?.appliedTotal || 0;
     score += p;
-    est += g.status === 'pre' ? proj : g.status === 'live' ? p + proj * g.left : p;
-    if (g.status === 'pre') toPlay++;
-    if (g.status === 'live') playing++;
+    if (g.status === 'pre') { remaining += proj; toPlay++; }
+    if (g.status === 'live') { remaining += proj * g.left; playing++; }
   }
-  // ESPN's own live projection when it has one; ours otherwise.
-  const proj = side.totalProjectedPoints != null && side.totalProjectedPoints > 0 ? side.totalProjectedPoints : est;
-  return { score: r2(score), proj: r1(Math.max(proj, score)), remaining: Math.max(0, proj - score), toPlay, playing };
+  return { score: r2(score), proj: r1(score + remaining), remaining, toPlay, playing };
 }
 const winChance = (a, b) => {
   const sd = Math.hypot(spreadFor(a.remaining), spreadFor(b.remaining));
