@@ -1,65 +1,68 @@
-# Refreshes the league data from ESPN and the ice sheet, rebuilds the site, and publishes it to GitHub Pages.
+# Refreshes the league data from ESPN and the ice sheet, rebuilds the site, and publishes it to the
+# gh-pages branch, which GitHub Pages serves.
+#
+# GitHub often starts scheduled runs late or skips them at busy times, so game days don't rely on one
+# run per hour. Instead a few runs start before each game window (each with a backup start 25 minutes
+# later) and stay up, refreshing at the top of every hour (see scripts/refresh.sh).
+# Times are UTC: ET is UTC-4 until Nov 1, then UTC-5.
 name: Build and deploy
 
 on:
-  # Times are UTC, on the hour (ET is UTC-4 until Nov 1, then UTC-5, so these are also on the hour in ET).
-  # Night windows run to 05:00 UTC so they still reach midnight ET after the clocks change.
-  schedule:
-    - cron: '0 11 * * *'      # every day, 7am ET (6am after Nov 1); picks up Monday night's game on Tuesdays
-    - cron: '0 23 * * *'      # every day, 7pm ET (6pm after Nov 1); picks up ices logged during the day
-    - cron: '0 13-23 * * 0'   # Sundays hourly, 9am ET (London games) through the afternoon slate
-    - cron: '0 0-5 * * 1'     # Sunday night game (early Monday UTC)
-    - cron: '0 0-5 * * 5'     # Thursday night game
-    - cron: '0 0-5 * * 2'     # Monday night game
-    - cron: '0 17-23 * * 6'   # Saturday games late in the season
-  workflow_dispatch:       # "Run workflow" button for a manual refresh
   push:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      hours:
+        description: Keep refreshing on the hour for this many hours (0 = refresh once)
+        default: '0'
+  schedule:
+    # Daily: refresh now and again on the hour, ~7am and ~7pm ET.
+    - cron: '30 10 * * *'
+    - cron: '50 10 * * *'
+    - cron: '30 22 * * *'
+    - cron: '50 22 * * *'
+    # Sunday: three ~6-hour windows covering 9am ET (London games) through the night game.
+    - cron: '20 12 * * 0'
+    - cron: '45 12 * * 0'
+    - cron: '20 17 * * 0'
+    - cron: '45 17 * * 0'
+    - cron: '20 22 * * 0'
+    - cron: '45 22 * * 0'
+    # Thursday and Monday night games.
+    - cron: '20 23 * * 4'
+    - cron: '45 23 * * 4'
+    - cron: '20 23 * * 1'
+    - cron: '45 23 * * 1'
+    # Saturday games late in the season.
+    - cron: '20 16 * * 6'
+    - cron: '45 16 * * 6'
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
+# A newer game-window run replaces an older one (the backup start, or the next window taking over).
 concurrency:
-  group: pages
+  group: ${{ github.event_name != 'schedule' && github.run_id || (startsWith(github.event.schedule, '30 ') || startsWith(github.event.schedule, '50 ')) && 'daily' || 'live' }}
   cancel-in-progress: true
 
 jobs:
-  build:
+  refresh:
     runs-on: ubuntu-latest
+    timeout-minutes: 360
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Fetch data
-        run: node fetch.mjs
+      - name: Refresh now, then on the hour
+        run: bash scripts/refresh.sh
         env:
+          SCHEDULE: ${{ github.event.schedule }}
+          HOURS: ${{ github.event.inputs.hours || '0' }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ESPN_S2: ${{ secrets.ESPN_S2 }}
           ESPN_SWID: ${{ secrets.ESPN_SWID }}
           LEAGUE_ID: ${{ vars.LEAGUE_ID }}
           SEASON: ${{ vars.SEASON }}
           ICE_SHEET_ID: ${{ vars.ICE_SHEET_ID }}
           ICE_SHEET_TAB: ${{ vars.ICE_SHEET_TAB }}
-      - name: Build site
-        run: node build.mjs
-        env:
-          ESPN_S2: ${{ secrets.ESPN_S2 }}
-          ESPN_SWID: ${{ secrets.ESPN_SWID }}
-          LEAGUE_ID: ${{ vars.LEAGUE_ID }}
-          SEASON: ${{ vars.SEASON }}
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: site
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4

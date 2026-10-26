@@ -800,6 +800,10 @@ if (/\{[0-9A-F]{8}-[0-9A-F]{4}-/i.test(json)) throw new Error('An ESPN account I
 mkdirSync(new URL('site/', import.meta.url), { recursive: true });
 writeFileSync(new URL('site/index.html', import.meta.url), template.replace('/*__DATA__*/null', json));
 cpSync(new URL('site-src/fonts/', import.meta.url), new URL('site/fonts/', import.meta.url), { recursive: true });
+cpSync(new URL('site-src/static/', import.meta.url), new URL('site/', import.meta.url), { recursive: true });
+// Tiny file the page polls (cache-busted) to know when newer data has been published.
+writeFileSync(new URL('site/version.json', import.meta.url), JSON.stringify({ built: model.league.built }));
+writeFileSync(new URL('site/.nojekyll', import.meta.url), '');
 
 // Copy for the claude.ai artifact preview, whose host supplies the doctype, <head> and <body> itself.
 const page = template

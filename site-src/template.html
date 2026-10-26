@@ -6,6 +6,11 @@
 <title>Fantasy Feetpics</title>
 <meta name="description" content="Standings, matchups, ice tracker, power rankings, draft and history for the Fantasy Feetpics league.">
 <meta name="theme-color" content="#04110b">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Feetpics">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8F%88%3C/text%3E%3C/svg%3E">
 <link rel="preload" href="fonts/big-shoulders-display.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/barlow-400.woff2" as="font" type="font/woff2" crossorigin>
@@ -136,7 +141,11 @@ button { font: inherit; color: inherit; }
   text-shadow: 0 0 40px rgb(120 255 180 / .15);
 }
 .masthead .meta { margin-top: 12px; color: var(--hero-ink-2); display: flex; flex-wrap: wrap; gap: 6px 8px; }
-.masthead .meta span { padding: 3px 10px; border-radius: 999px; background: rgb(255 255 255 / .08); border: 1px solid rgb(255 255 255 / .12); font-size: 13px; font-weight: 600; }
+.masthead .meta span, .masthead .fresh { padding: 3px 10px; border-radius: 999px; background: rgb(255 255 255 / .08); border: 1px solid rgb(255 255 255 / .12); font-size: 13px; font-weight: 600; color: var(--hero-ink-2); }
+.masthead .fresh { cursor: pointer; font-family: inherit; }
+.masthead .fresh:hover { border-color: rgb(255 255 255 / .35); }
+.masthead .fresh:disabled { cursor: default; }
+.masthead .fresh.has-new { background: #ffd75e; color: #2b1d00; border-color: #ffd75e; font-weight: 800; }
 .facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; min-width: 0; max-width: 480px; }
 .fact { min-width: 0; padding: 10px 14px; border-radius: var(--radius); background: rgb(255 255 255 / .06); border: 1px solid rgb(255 255 255 / .12); }
 .fact b { display: block; font-family: var(--font-display); font-weight: 800; font-size: 30px; line-height: 1.05; color: #ffffff; }
@@ -456,6 +465,7 @@ td.hl-all { background: color-mix(in oklab, var(--gold) 8%, transparent); }
 .risk-list li { padding: 8px 14px; border-bottom: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; font-size: 13.5px; }
 .risk-list li:last-child { border-bottom: 0; }
 #ice-watch tr.on-hook { background: color-mix(in oklab, var(--ice) 10%, transparent); }
+#ice-watch .rank { display: inline-block; width: 1.4em; color: var(--muted); font-weight: 700; }
 #ice-watch .bar { min-width: 70px; }
 .live-head .eyebrow { display: inline-flex; align-items: center; gap: 4px; color: var(--coral); }
 
@@ -523,7 +533,7 @@ footer .wrap { padding-block: 18px 32px; display: flex; flex-wrap: wrap; gap: 8p
   .masthead .eyebrow { font-size: 10.5px; grid-column: 2; align-self: end; }
   .masthead h1 { font-size: 10.6vw; white-space: nowrap; grid-column: 2; margin-top: 2px; }
   .masthead .meta { grid-column: 1 / -1; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
-  .masthead .meta span { font-size: 12px; white-space: nowrap; padding: 3px 9px; }
+  .masthead .meta span, .masthead .fresh { font-size: 12px; white-space: nowrap; padding: 3px 9px; }
   /* The four stat cards only on Standings, so other tabs start closer to their content */
   :root:not([data-view="standings"]) .facts { display: none; }
   .m-only-block { display: block; }
@@ -1063,7 +1073,14 @@ $('meta').innerHTML = [
   `🏈 Week ${L.currentWeek} of ${L.regWeeks}`,
   `🎟️ Top ${L.playoffTeams} make the playoffs`,
   `🗓️ Playoffs start week ${playoffStart}`,
-].map((s) => `<span>${esc(s)}</span>`).join('');
+].map((s) => `<span>${esc(s)}</span>`).join('') + '<button type="button" class="fresh" id="fresh" title="Check for newer scores"></button>';
+// How fresh the data is, refreshed every minute.
+function ago(ms) {
+  const m = Math.round((Date.now() - ms) / 60000);
+  return m < 1 ? 'just now' : m < 60 ? `${m} min ago` : m < 1440 ? `${Math.floor(m / 60)} hr ${m % 60 ? (m % 60) + ' min ' : ''}ago` : `${Math.floor(m / 1440)} day${m >= 2880 ? 's' : ''} ago`;
+}
+function showFresh() { $('fresh').innerHTML = `🔄 Updated ${ago(L.built)}`; }
+showFresh(); setInterval(showFresh, 60000);
 {
   const top = D.teams[0];
   const best = [...D.teams].sort((a, b) => b.pf - a.pf)[0];
@@ -1603,10 +1620,11 @@ function liveIce(wk) {
       <div class="ice-who"><strong>${esc(iceOwner(T[teamId].ownerId))}</strong><small>${esc(T[teamId].name)}</small>
       <ul>${rows.map((r) => `<li>${E('🥚')} ${esc(r.name)} <small class="note">${esc(r.pos)} · ${esc(r.pro)}</small> scored ${f2(r.pts)}</li>`).join('')}</ul></div></div>`).join('');
   const scoreless = lv.scoreless.map((r) => `<li><span class="live-dot"></span><b>${esc(iceOwner(T[r.teamId].ownerId))}</b> · ${esc(r.name)} <small class="note">${esc(r.pos)} · ${esc(r.pro)}</small> <span class="pill muted">${f2(r.pts)} so far</span></li>`).join('');
-  const watch = lv.lowest.filter((x) => x.chance >= 5);
+  // Everyone, ranked by actual points so far (lowest first): whoever is at the bottom right now is on the hook.
+  const watch = [...lv.lowest].sort((a, b) => a.score - b.score || a.proj - b.proj);
   const top = watch[0];
-  const rows = watch.map((x) => `<tr class="${x === top ? 'on-hook' : ''}">
-      <td class="team-cell"><b>${x === top ? E('🧊') + ' ' : ''}${esc(iceOwner(T[x.teamId].ownerId))}</b><small>${esc(T[x.teamId].name)}</small></td>
+  const rows = watch.map((x, i) => `<tr class="${i === 0 ? 'on-hook' : ''}">
+      <td class="team-cell"><b><span class="rank">${i + 1}</span>${i === 0 ? E('🧊') + ' ' : ''}${esc(iceOwner(T[x.teamId].ownerId))}</b><small>${esc(T[x.teamId].name)}</small></td>
       <td class="r"><b>${f1(x.score)}</b><small class="note m-only-block">proj ${f1(x.proj)}</small></td>
       <td class="r">${f1(x.proj)}</td><td class="r">${x.toPlay + x.playing}</td>
       <td><div style="display:flex;align-items:center;gap:8px"><div class="bar ice-bar"><i style="width:${x.chance}%"></i></div><b class="num">${x.chance}%</b></div></td></tr>`).join('');
@@ -1619,7 +1637,7 @@ function liveIce(wk) {
         ${locked ? `<div class="ice-cards">${locked}</div>` : '<p class="note">No ices locked in yet. A starter whose game has finished at 0 or fewer points shows up here.</p>'}</div>
       ${scoreless ? `<div class="block"><h4 class="sub">${E('⚠️')} Scoreless so far</h4><p class="note">Starters on zero or less in games still being played.</p><ul class="risk-list panel">${scoreless}</ul></div>` : ''}
       <div class="block"><h4 class="sub">${E('📉')} Lowest score watch</h4>
-        <p class="note">Each team's chance of finishing with the week's lowest score, from its current score, projected final and points still to play.${top ? ` ${esc(iceOwner(T[top.teamId].ownerId))} is most at risk right now.` : ''}</p>
+        <p class="note">Every team ranked by points scored so far, lowest first.${top ? ` ${esc(iceOwner(T[top.teamId].ownerId))} has the lowest score right now.` : ''} The last column is each team's chance of still being lowest at the end, allowing for players yet to play.</p>
         <div class="panel scroll"><table id="ice-watch"><thead><tr><th>Owner</th><th class="r">Score</th><th class="r">Proj</th><th class="r">To play</th><th>Chance of lowest</th></tr></thead><tbody>${rows}</tbody></table></div></div>
     </div>`;
 }
@@ -1943,8 +1961,8 @@ function buildHeadlines() {
     h.push(names ? `🧊 Ices due ${short(latest.deadline)}: ${names}` : `🎉 No ices owed for week ${latest.week}`);
   } else if (pending) h.push(`🧊 Week ${pending.week} ices due ${short(pending.deadline)}`);
   if (pending?.live) {
-    const top = pending.live.lowest[0];
-    if (top) h.push(`🧊 Ice watch: ${iceOwner(T[top.teamId].ownerId)} has a ${top.chance}% chance of the week's lowest score`);
+    const top = [...pending.live.lowest].sort((a, b) => a.score - b.score)[0];
+    if (top) h.push(`🧊 Ice watch: ${iceOwner(T[top.teamId].ownerId)} has the lowest score so far (${f1(top.score)})`);
     for (const r of pending.live.locked) h.push(`🔒 ${iceOwner(T[r.teamId].ownerId)} owes an ice: ${r.name} finished with ${f2(r.pts)}`);
   }
   const len = streakLen;
@@ -1985,6 +2003,39 @@ function buildHeadlines() {
 }
 
 $('footer').innerHTML = `<span>🏈 Data from ESPN fantasy league ${esc(L.leagueId)} · Standings as of ${fmtDate(L.updated)}</span><span>Page built ${fmtDate(L.built)}</span>`;
+
+/* ---------- Stay current ----------
+   Home-screen apps and background tabs keep the page they first loaded. Whenever the site is opened or
+   brought back, check version.json (bypassing every cache) and reload if newer data has been published.
+   While someone is actively reading, offer a refresh button instead of reloading under them. */
+(() => {
+  if (!/\.github\.io$/.test(location.hostname)) { $('fresh').disabled = true; return; }
+  let busy = false, newer = null;
+  const reload = () => {
+    const u = new URL(location.href);
+    u.searchParams.set('v', String(newer || Date.now())); // a new URL skips the 10-minute page cache
+    location.replace(u.toString());
+  };
+  async function check(autoReload) {
+    if (busy || document.hidden) return;
+    busy = true;
+    try {
+      const r = await fetch(`version.json?t=${Date.now()}`, { cache: 'no-store' });
+      const v = await r.json();
+      if (v.built > L.built) {
+        newer = v.built;
+        if (autoReload) return reload();
+        $('fresh').innerHTML = '✨ New scores · Refresh';
+        $('fresh').classList.add('has-new');
+      }
+    } catch { /* offline or blocked: keep the current page */ } finally { busy = false; }
+  }
+  $('fresh').addEventListener('click', () => (newer ? reload() : check(true)));
+  document.addEventListener('visibilitychange', () => check(true));
+  window.addEventListener('pageshow', (e) => { if (e.persisted) check(true); });
+  setTimeout(() => check(true), 1500);
+  setInterval(() => check(false), 5 * 60e3);
+})();
 show(location.hash.slice(1));
 </script>
 </body>
