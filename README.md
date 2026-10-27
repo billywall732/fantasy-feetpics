@@ -11,10 +11,40 @@ node build.mjs   # builds site/index.html
 
 Open `site/index.html` in a browser. The page has the data built in; `site/fonts/` holds its fonts.
 
-## Publish on GitHub Pages
+## Refresh schedule
 
-The workflow in `.github/workflows/deploy.yml` fetches, builds and publishes the site twice a day
-(7am and 7pm ET), on every push to `main`, and on demand.
+`.github/workflows/deploy.yml` runs `scripts/refresh.sh`: fetch, build, then push `site/` to the
+`gh-pages` branch, which GitHub Pages serves within seconds. It runs on every push to `main`, on demand,
+and whenever cron-job.org asks for it.
+
+GitHub's own scheduler can start runs hours late, so on-time refreshes come from **cron-job.org**,
+which calls GitHub's "run workflow" API at exact times (America/New_York):
+
+- **Daily** at 7:00 and 19:00
+- **Sundays** hourly, 8:00–23:00
+
+Two GitHub crons stay in the workflow as a safety net in case cron-job.org is ever down.
+
+### Setting up cron-job.org
+
+1. **GitHub token.** GitHub → Settings → Developer settings → Fine-grained tokens → Generate new token.
+   Repository access: only `fantasy-feetpics`. Permissions: **Actions → Read and write**, nothing else.
+   It can do nothing except start this workflow.
+2. **cron-job.org jobs.** Two jobs with the same request:
+   - URL `https://api.github.com/repos/billywall732/fantasy-feetpics/actions/workflows/deploy.yml/dispatches`
+   - Method POST, body `{"ref":"main"}`
+   - Headers `Authorization: Bearer <token>`, `Accept: application/vnd.github+json`,
+     `X-GitHub-Api-Version: 2022-11-28`, `Content-Type: application/json`
+   - Time zone America/New_York
+   - "Daily": every day at 7:00 and 19:00. "Sunday hourly": Sundays, minute 0 of hours 8–18 and 20–23.
+3. **Test run** a job: GitHub answers 204, and a "Build and deploy" run appears under Actions.
+
+- **Token expired** (cron-job.org reports 401): make a new token and paste it into both jobs.
+- **Pause refreshes** (off-season): disable the two cron-job.org jobs.
+- **Manual refresh:** `gh workflow run deploy.yml`, or Actions → Build and deploy → Run workflow.
+  Set "hours" to keep it refreshing on the hour for that many hours.
+
+## Publish on GitHub Pages
 
 1. Create a **public** GitHub repo and push this folder to its `main` branch. `.env`, `data/` and `site/`
    are gitignored, so no cookies or raw data get pushed.
@@ -22,7 +52,8 @@ The workflow in `.github/workflows/deploy.yml` fetches, builds and publishes the
    - **Secrets:** `ESPN_S2` and `ESPN_SWID` (the same values as in `.env`).
    - **Variables:** `LEAGUE_ID` = `395796507`, `SEASON` = `2026`, `ICE_SHEET_ID` = the sheet ID,
      `ICE_SHEET_TAB` = `Ice Stats`.
-3. **Settings → Pages → Build and deployment → Source: GitHub Actions.**
+3. **Settings → Pages → Build and deployment → Source: Deploy from a branch → `gh-pages` / root**
+   (the branch appears after the first workflow run).
 4. **Actions → Build and deploy → Run workflow.** The site appears at
    `https://<your-username>.github.io/<repo-name>/`.
 

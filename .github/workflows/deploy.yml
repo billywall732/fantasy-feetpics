@@ -1,10 +1,9 @@
 # Refreshes the league data from ESPN and the ice sheet, rebuilds the site, and publishes it to the
 # gh-pages branch, which GitHub Pages serves.
 #
-# GitHub often starts scheduled runs late or skips them at busy times, so game days don't rely on one
-# run per hour. Instead a few runs start before each game window (each with a backup start 25 minutes
-# later) and stay up, refreshing at the top of every hour (see scripts/refresh.sh).
-# Times are UTC: ET is UTC-4 until Nov 1, then UTC-5.
+# On-time refreshes are started by cron-job.org through the API (workflow_dispatch), because GitHub's
+# own scheduler can start runs hours late. Schedule (America/New_York): daily 7:00 and 19:00, and
+# Sundays hourly 8:00-23:00. See README.md, "Refresh schedule".
 name: Build and deploy
 
 on:
@@ -16,34 +15,17 @@ on:
         description: Keep refreshing on the hour for this many hours (0 = refresh once)
         default: '0'
   schedule:
-    # Daily: refresh now and again on the hour, ~7am and ~7pm ET.
-    - cron: '30 10 * * *'
-    - cron: '50 10 * * *'
-    - cron: '30 22 * * *'
-    - cron: '50 22 * * *'
-    # Sunday: three ~6-hour windows covering 9am ET (London games) through the night game.
-    - cron: '20 12 * * 0'
-    - cron: '45 12 * * 0'
-    - cron: '20 17 * * 0'
-    - cron: '45 17 * * 0'
-    - cron: '20 22 * * 0'
-    - cron: '45 22 * * 0'
-    # Thursday and Monday night games.
-    - cron: '20 23 * * 4'
-    - cron: '45 23 * * 4'
-    - cron: '20 23 * * 1'
-    - cron: '45 23 * * 1'
-    # Saturday games late in the season.
-    - cron: '20 16 * * 6'
-    - cron: '45 16 * * 6'
+    # Safety net only, in case cron-job.org is down. GitHub may run these late; that just refreshes again.
+    - cron: '15 12 * * *'
+    - cron: '15 0 * * *'
 
 permissions:
   contents: write
 
-# A newer game-window run replaces an older one (the backup start, or the next window taking over).
+# Requests that arrive close together queue up rather than cancel each other.
 concurrency:
-  group: ${{ github.event_name != 'schedule' && github.run_id || (startsWith(github.event.schedule, '30 ') || startsWith(github.event.schedule, '50 ')) && 'daily' || 'live' }}
-  cancel-in-progress: true
+  group: refresh
+  cancel-in-progress: false
 
 jobs:
   refresh:
@@ -54,10 +36,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Refresh now, then on the hour
+      - name: Refresh
         run: bash scripts/refresh.sh
         env:
-          SCHEDULE: ${{ github.event.schedule }}
           HOURS: ${{ github.event.inputs.hours || '0' }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ESPN_S2: ${{ secrets.ESPN_S2 }}
