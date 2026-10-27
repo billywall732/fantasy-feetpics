@@ -442,7 +442,6 @@ const benchy = by(teams, (t) => t.benchLeft);
 const lucky = by(teams, (t) => t.luck);
 const unlucky = by(teams, (t) => -t.luck);
 const tinkerer = by(teams, (t) => t.moves);
-const steady = by(teams, (t) => -t.sd);
 const awards = [
   { title: 'Top score of the season', value: fmt(hi.score), teamId: hi.teamId, note: `Week ${hi.week} vs ${team[hi.opp].name}` },
   { title: 'Lowest score', value: fmt(lo.score), teamId: lo.teamId, note: `Week ${lo.week} vs ${team[lo.opp].name}` },
@@ -453,11 +452,10 @@ const awards = [
   { title: 'Best player week', value: fmt(bestPlayer.pts), teamId: bestPlayer.teamId, note: `${bestPlayer.name} (${bestPlayer.pos}), week ${bestPlayer.week}` },
   { title: 'Worst starter week', value: fmt(worstStarter.pts), teamId: worstStarter.teamId, note: `${worstStarter.name} (${worstStarter.pos}), week ${worstStarter.week}` },
   { title: 'Coach of the year', value: `${coach.efficiency}%`, teamId: coach.id, note: 'Highest share of the best possible lineup actually started' },
-  { title: 'Left it on the bench', value: fmt(benchy.benchLeft), teamId: benchy.id, note: `Points short of the optimal lineup; ${benchy.optimalLosses} losses would have been wins` },
+  { title: 'Bench Cuck', value: fmt(benchy.benchLeft), teamId: benchy.id, note: `Points short of the optimal lineup; ${benchy.optimalLosses} losses would have been wins` },
   { title: 'Luckiest record', value: signed(lucky.luck), teamId: lucky.id, note: `${lucky.w}-${lucky.l} actual vs ${lucky.expectedWins} expected wins` },
   { title: 'Unluckiest record', value: signed(unlucky.luck), teamId: unlucky.id, note: `${unlucky.w}-${unlucky.l} actual vs ${unlucky.expectedWins} expected wins` },
   { title: 'Waiver wire addict', value: String(tinkerer.moves), teamId: tinkerer.id, note: 'Waiver claims and free-agent pickups' },
-  { title: 'Mr. Consistent', value: `±${steady.sd}`, teamId: steady.id, note: 'Smallest week-to-week swing in score' },
 ];
 function signed(n) { return (n > 0 ? '+' : '') + n.toFixed(1); }
 
@@ -629,6 +627,26 @@ const iceTable = teams.map((t) => {
     worst: times.length ? Math.max(...times) : null,
   };
 }).sort((a, b) => b.earned - a.earned || (a.avg ?? 99) - (b.avg ?? 99));
+
+// Ice awards: most ices earned, and the fastest and slowest single ice in the log.
+const teamOfOwner = (ownerId) => teams.find((t) => t.ownerId === ownerId);
+const timedIces = iceLog.filter((x) => x.secs != null && teamOfOwner(x.ownerId));
+const iceNote = (x) => `${x.why}${x.week ? `, week ${x.week}` : ''}${x.date ? ` · ${x.date}` : ''}`;
+if (timedIces.length) {
+  const fastest = by(timedIces, (x) => -x.secs), slowest = by(timedIces, (x) => x.secs);
+  awards.push(
+    { title: 'Fastest ice', value: `${fastest.secs.toFixed(2)} s`, teamId: teamOfOwner(fastest.ownerId).id, note: iceNote(fastest) },
+    { title: 'Slowest ice', value: `${slowest.secs.toFixed(2)} s`, teamId: teamOfOwner(slowest.ownerId).id, note: iceNote(slowest) },
+  );
+}
+const mostIces = iceTable[0];
+if (mostIces?.earned) {
+  const tied = iceTable.filter((r) => r.earned === mostIces.earned);
+  awards.push({
+    title: 'Most ices', value: String(mostIces.earned), teamId: mostIces.teamId,
+    note: tied.length > 1 ? `Tied with ${tied.slice(1).map((r) => owners[r.ownerId].name).join(', ')}; ranked by faster average time` : `${mostIces.lowest} for the lowest score, ${mostIces.duds} for 0-point starters`,
+  });
+}
 
 // ---------- History ----------
 const seasons = [];
