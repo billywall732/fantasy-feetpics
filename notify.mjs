@@ -9,6 +9,7 @@
 // Reads data/ice-events.json (written by build.mjs) and writes site/notified.json, which is published
 // with the site so the next refresh knows what has already gone out.
 import { readFileSync, writeFileSync, existsSync, readdirSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import nodemailer from 'nodemailer';
 import { env } from './env.mjs';
 
@@ -28,7 +29,7 @@ function pickImage(kind) {
   const files = readdirSync(dir).filter((f) => /\.(jpe?g|png|gif|webp)$/i.test(f));
   if (!files.length) return null;
   const file = files[Math.floor(Math.random() * files.length)];
-  return { filename: file, path: new URL(file, dir).pathname.replace(/^\/([A-Za-z]:)/, '$1'), cid: 'ice-picture' };
+  return { filename: file, path: fileURLToPath(new URL(file, dir)), cid: 'ice-picture' };
 }
 
 // ---------- Message ----------
