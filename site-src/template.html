@@ -372,6 +372,7 @@ td.top3 div:first-child b { color: var(--gold); }
 .award-row-label { margin: 0; align-self: center; font-family: var(--font-display); font-weight: 800; font-size: 18px; text-transform: uppercase; letter-spacing: .03em; color: var(--ink-2); line-height: 1.1; }
 .award-row-cards { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 14px; }
 .award-row-cards .award { height: 100%; }
+.award .award-desc { font-style: normal; font-size: 12.5px; color: var(--muted); line-height: 1.35; margin-top: -1px; padding-right: 46px; }
 
 /* History */
 .banners { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 14px; }
@@ -1895,6 +1896,26 @@ const AWARD_STYLE = {
   'Bench Cuck': ['🪑', 'var(--violet)'], 'Luckiest record': ['🍀', 'var(--lime)'], 'Unluckiest record': ['💀', 'var(--bad)'],
   'Waiver wire addict': ['🛒', 'var(--ice)'], 'Used Car Salesman': ['🚗', 'var(--violet)'], 'Fastest ice': ['⚡', 'var(--ice)'], 'Slowest ice': ['🐢', 'var(--ice)'], 'Most ices': ['🧊', 'var(--ice)'],
 };
+// One line under each award title saying what it measures.
+const AWARD_DESC = {
+  'Top score of the season': 'Most points by a team in one week',
+  'Lowest score': 'Fewest points by a team in one week',
+  'Biggest blowout': 'Largest winning margin',
+  'Closest game': 'Smallest winning margin',
+  'Most points in a loss': 'Highest score that still lost',
+  'Ugliest win': 'Lowest score that still won',
+  'Best player week': 'Most points by one starter in a single week',
+  'Worst starter week': 'Fewest points by one starter in a single week (kickers and defenses not counted)',
+  'Coach of the year': 'Best at starting the right players',
+  'Bench Cuck': 'Most points left sitting on the bench',
+  'Luckiest record': 'Most wins above what their scores deserve',
+  'Unluckiest record': 'Most wins below what their scores deserve',
+  'Fastest ice': 'Quickest ice in the log',
+  'Slowest ice': 'Longest ice in the log',
+  'Most ices': 'Most ices earned this season',
+  'Waiver wire addict': 'Most waiver and free-agent pickups',
+  'Used Car Salesman': 'Most trades completed',
+};
 // Awards sit in rows of matching pairs (best next to worst); anything new lands in a final row.
 const AWARD_ROWS = [
   ['Scores', ['Top score of the season', 'Lowest score']],
@@ -1910,7 +1931,8 @@ function renderAwards() {
   $('awards-note').textContent = `Through week ${L.lastWeek}.`;
   const card = (a) => {
     const [icon, k] = AWARD_STYLE[a.title] || ['🏅', 'var(--accent)'];
-    return `<div class="panel award lift" style="--k:${k}"><i class="emoji big-emoji" aria-hidden="true">${icon}</i><span>${esc(a.title)}</span><b>${esc(a.value)}</b><strong>${esc(T[a.teamId].name)}</strong><small>${esc(T[a.teamId].owner)} · ${esc(a.note)}</small></div>`;
+    const desc = AWARD_DESC[a.title];
+    return `<div class="panel award lift" style="--k:${k}"><i class="emoji big-emoji" aria-hidden="true">${icon}</i><span>${esc(a.title)}</span>${desc ? `<em class="award-desc">${esc(desc)}</em>` : ''}<b>${esc(a.value)}</b><strong>${esc(T[a.teamId].name)}</strong><small>${esc(T[a.teamId].owner)} · ${esc(a.note)}</small></div>`;
   };
   const placed = new Set(AWARD_ROWS.flatMap(([, titles]) => titles));
   const rows = [...AWARD_ROWS, ['More', D.awards.filter((a) => !placed.has(a.title)).map((a) => a.title)]];

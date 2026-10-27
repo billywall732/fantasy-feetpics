@@ -180,7 +180,7 @@ for (const [wk, games] of Object.entries(box)) {
         tw.worst = who(starters.at(-1));
         tw.bestBench = bench.length ? who(bench[0]) : null;
         for (const e of entries.filter((e) => isStarter(e.lineupSlotId))) {
-          playerWeeks.push({ week: w, teamId: side.teamId, name: e.playerPoolEntry.player.fullName, pos: POS[e.playerPoolEntry.player.defaultPositionId], pts: r2(e.playerPoolEntry.appliedStatTotal || 0) });
+          playerWeeks.push({ week: w, teamId: side.teamId, name: e.playerPoolEntry.player.fullName, pos: POS[e.playerPoolEntry.player.defaultPositionId], pro: PRO[e.playerPoolEntry.player.proTeamId] ?? '', pts: r2(e.playerPoolEntry.appliedStatTotal || 0) });
         }
       }
     }
@@ -435,6 +435,12 @@ const blow = by(games, (g) => g.ws - g.ls);
 const close = by(games, (g) => -(g.ws - g.ls));
 const sadLoss = by(games, (g) => g.ls);
 const ugly = by(games, (g) => -g.ws);
+// "Tetairoa McMillan (WR, CAR) scored 45.20 in week 4; the team won 154.12–106.32"
+const playerNote = (p) => {
+  const g = team[p.teamId].weeks[p.week];
+  const result = g ? `; the team ${g.result === 'W' ? 'won' : g.result === 'L' ? 'lost' : 'tied'} ${fmt(g.score)}–${fmt(g.oppScore)} vs ${team[g.opp].name}` : '';
+  return `${p.name} (${p.pos}${p.pro ? ', ' + p.pro : ''}) scored ${fmt(p.pts)} in week ${p.week}${result}`;
+};
 const bestPlayer = by(playerWeeks, (p) => p.pts);
 const worstStarter = by(playerWeeks.filter((p) => p.pos !== 'D/ST' && p.pos !== 'K'), (p) => -p.pts);
 const coach = by(teams, (t) => t.efficiency);
@@ -448,9 +454,9 @@ const awards = [
   { title: 'Biggest blowout', value: `+${fmt(blow.ws - blow.ls)}`, teamId: blow.winner, note: `Week ${blow.week}: ${fmt(blow.ws)} to ${fmt(blow.ls)} over ${team[blow.loser].name}` },
   { title: 'Closest game', value: fmt(close.ws - close.ls), teamId: close.winner, note: `Week ${close.week}: edged ${team[close.loser].name}, ${fmt(close.ws)} to ${fmt(close.ls)}` },
   { title: 'Most points in a loss', value: fmt(sadLoss.ls), teamId: sadLoss.loser, note: `Week ${sadLoss.week}, lost to ${team[sadLoss.winner].name}` },
-  { title: 'Ugliest win', value: fmt(ugly.ws), teamId: ugly.winner, note: `Week ${ugly.week}, beat ${team[ugly.loser].name}` },
-  { title: 'Best player week', value: fmt(bestPlayer.pts), teamId: bestPlayer.teamId, note: `${bestPlayer.name} (${bestPlayer.pos}), week ${bestPlayer.week}` },
-  { title: 'Worst starter week', value: fmt(worstStarter.pts), teamId: worstStarter.teamId, note: `${worstStarter.name} (${worstStarter.pos}), week ${worstStarter.week}` },
+  { title: 'Ugliest win', value: fmt(ugly.ws), teamId: ugly.winner, note: `Week ${ugly.week}: won with just ${fmt(ugly.ws)}, beating ${team[ugly.loser].name} (${fmt(ugly.ls)})` },
+  { title: 'Best player week', value: fmt(bestPlayer.pts), teamId: bestPlayer.teamId, note: playerNote(bestPlayer) },
+  { title: 'Worst starter week', value: fmt(worstStarter.pts), teamId: worstStarter.teamId, note: playerNote(worstStarter) },
   { title: 'Coach of the year', value: `${coach.efficiency}%`, teamId: coach.id, note: 'Highest share of the best possible lineup actually started' },
   { title: 'Bench Cuck', value: fmt(benchy.benchLeft), teamId: benchy.id, note: `Points short of the optimal lineup; ${benchy.optimalLosses} losses would have been wins` },
   { title: 'Luckiest record', value: signed(lucky.luck), teamId: lucky.id, note: `${lucky.w}-${lucky.l} actual vs ${lucky.expectedWins} expected wins` },
