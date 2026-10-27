@@ -1,0 +1,8 @@
+{
+  "name": "fantasy-feetpics",
+  "private": true,
+  "description": "Stats site and ice notifications for the Fantasy Feetpics ESPN league",
+  "dependencies": {
+    "nodemailer": "6.9.16"
+  }
+}

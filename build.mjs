@@ -517,8 +517,8 @@ for (const [spKey, games] of Object.entries(box)) {
   if (final) {
     const low = Math.min(...scored.map((s) => s.score));
     for (const s of scored) {
-      if (s.score === low) entries.push({ teamId: s.teamId, reason: 'Lowest score of the week', detail: f2(s.score), ices: mult });
-      for (const d of s.duds) entries.push({ teamId: s.teamId, reason: `${d.name} scored ${f2(d.pts)}`, detail: d.pos, ices: mult });
+      if (s.score === low) entries.push({ teamId: s.teamId, kind: 'lowest', score: s.score, reason: 'Lowest score of the week', detail: f2(s.score), ices: mult });
+      for (const d of s.duds) entries.push({ teamId: s.teamId, kind: 'dud', player: d.name, pos: d.pos, pts: d.pts, reason: `${d.name} scored ${f2(d.pts)}`, detail: d.pos, ices: mult });
     }
   }
   const byTeam = {};
@@ -533,7 +533,7 @@ for (const [spKey, games] of Object.entries(box)) {
       for (const e of s.rosterForCurrentScoringPeriod.entries.filter((e) => isStarter(e.lineupSlotId))) {
         const g = gameState(sp, e.playerPoolEntry.player.proTeamId);
         if (pts(e) > 0) continue;
-        const row = { teamId: s.teamId, ...who(e), pro: PRO[e.playerPoolEntry.player.proTeamId] ?? '' };
+        const row = { teamId: s.teamId, ...who(e), pro: PRO[e.playerPoolEntry.player.proTeamId] ?? '', kickoff: g.kickoff ?? null };
         if (g.status === 'final') locked.push(row);
         else if (g.status === 'live') scoreless.push(row);
       }
@@ -570,6 +570,35 @@ for (const [spKey, games] of Object.entries(box)) {
   });
 }
 for (const t of teams) for (const w of doneWeeks) t.weeks[w].ices = iceWeeks.find((x) => x.week === w)?.owed.find((o) => o.teamId === t.id)?.ices ?? 0;
+
+// Locked-in ices that aren't due yet, for notify.mjs to email (never published: owner names stay in data/).
+// Duds lock when the player's game ends; the lowest score locks when the week is final.
+{
+  const deadlineText = (ms) => new Date(ms).toLocaleString('en-US', { timeZone: ET, weekday: 'long', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) + ' ET';
+  const events = new Map();
+  for (const wk of iceWeeks) {
+    if (!wk.deadline || wk.deadline <= NOW) continue;
+    const base = (teamId) => ({
+      season: SEASON, week: wk.week, teamId, owner: owners[team[teamId].ownerId]?.name ?? '', team: team[teamId].name,
+      deadline: wk.deadline, deadlineText: deadlineText(wk.deadline), ices: wk.playoff ? multiplier : 1, playoff: wk.playoff,
+    });
+    const dud = (teamId, r) => {
+      const id = `${SEASON}-w${wk.week}-dud-${teamId}-${r.player}`;
+      if (!events.has(id)) events.set(id, { id, kind: 'dud', player: r.player, pos: r.pos, pro: r.pro ?? '', pts: r.pts, ...base(teamId) });
+    };
+    for (const o of wk.owed) {
+      for (const r of o.reasons) {
+        if (r.kind === 'lowest') events.set(`${SEASON}-w${wk.week}-lowest-${o.teamId}`, { id: `${SEASON}-w${wk.week}-lowest-${o.teamId}`, kind: 'lowest', score: r.score, ...base(o.teamId) });
+        else if (r.kind === 'dud') dud(o.teamId, r);
+      }
+    }
+    // Emails can't be taken back, so mid-week duds wait until well after the game (overtime, delays).
+    for (const r of wk.live?.locked || []) {
+      if (r.kickoff && NOW >= r.kickoff + 4.5 * 3600e3) dud(r.teamId, { player: r.name, pos: r.pos, pro: r.pro, pts: r.pts });
+    }
+  }
+  writeFileSync(new URL('data/ice-events.json', import.meta.url), JSON.stringify([...events.values()], null, 2));
+}
 function f2(n) { return Number(n).toFixed(2); }
 
 // Ice log (completed ices with times) from the Google Sheet.

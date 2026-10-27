@@ -6,11 +6,18 @@ set -uo pipefail
 
 STOP=$(( $(date +%s) + ${HOURS:-0} * 3600 ))
 
+npm ci --silent --no-audit --no-fund
+
 publish() {
   if ! node fetch.mjs || ! node build.mjs; then
     echo "::warning::Refresh failed at $(date -u +%H:%M) UTC"
     return 1
   fi
+  # Ice emails: carry forward the list of ices already emailed (kept on gh-pages), then send new ones.
+  # The carried-forward copy is published even if sending fails, so nothing is emailed twice.
+  if git fetch -q origin gh-pages 2>/dev/null && git show origin/gh-pages:notified.json > /tmp/notified.json 2>/dev/null; then :; else echo '[]' > /tmp/notified.json; fi
+  cp /tmp/notified.json site/notified.json
+  node notify.mjs --state /tmp/notified.json || echo "::warning::Some ice emails failed; they will be retried next refresh"
   rm -rf /tmp/pub && cp -r site /tmp/pub
   (
     cd /tmp/pub &&

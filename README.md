@@ -44,6 +44,31 @@ Two GitHub crons stay in the workflow as a safety net in case cron-job.org is ev
 - **Manual refresh:** `gh workflow run deploy.yml`, or Actions → Build and deploy → Run workflow.
   Set "hours" to keep it refreshing on the hour for that many hours.
 
+## Ice emails
+
+Each refresh, `notify.mjs` emails the manager who owes as soon as an ice locks in, with a picture, the
+reason and the deadline.
+
+- **A starter at 0 or less:** sent once their game is over (4½ hours after kickoff).
+- **Lowest score of the week:** sent once the week is final.
+- **Ices already emailed** are listed in `notified.json` on the `gh-pages` branch, so nothing goes out twice.
+- **Pictures:** `notify-images/dud/` and `notify-images/lowest/` (one is picked at random per email).
+
+Setup:
+1. **Gmail app password:** turn on 2-Step Verification for the Gmail account, then go to
+   https://myaccount.google.com/apppasswords and create one named "Feetpics".
+2. **Secrets** (run these yourself so the values never leave your machine):
+   ```
+   gh secret set GMAIL_USER -R billywall732/fantasy-feetpics
+   gh secret set GMAIL_APP_PASSWORD -R billywall732/fantasy-feetpics
+   gh secret set ICE_EMAILS -R billywall732/fantasy-feetpics < ice-emails.json
+   ```
+   `ICE_EMAILS` is a JSON map of the names shown on the site to email addresses. Locally, the same three
+   values go in `.env`.
+3. **Test:** `node notify.mjs --test you@example.com` sends one made-up sample of each kind.
+4. **Switch on:** `gh variable set NOTIFY_ENABLED --body true -R billywall732/fantasy-feetpics`.
+   Until then refreshes only log what they would send. Set it to `false` to pause.
+
 ## Publish on GitHub Pages
 
 1. Create a **public** GitHub repo and push this folder to its `main` branch. `.env`, `data/` and `site/`

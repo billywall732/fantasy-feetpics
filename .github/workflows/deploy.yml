@@ -36,11 +36,17 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
       - name: Refresh
         run: bash scripts/refresh.sh
         env:
           HOURS: ${{ github.event.inputs.hours || '0' }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Ice emails (see README): Gmail login, name -> email map, and the on/off switch.
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          ICE_EMAILS: ${{ secrets.ICE_EMAILS }}
+          NOTIFY_ENABLED: ${{ vars.NOTIFY_ENABLED }}
           ESPN_S2: ${{ secrets.ESPN_S2 }}
           ESPN_SWID: ${{ secrets.ESPN_SWID }}
           LEAGUE_ID: ${{ vars.LEAGUE_ID }}
