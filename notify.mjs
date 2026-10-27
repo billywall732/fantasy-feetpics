@@ -74,9 +74,12 @@ function mailer() {
   transport ??= nodemailer.createTransport({ service: 'gmail', auth: { user: env.GMAIL_USER, pass: env.GMAIL_APP_PASSWORD.replace(/\s+/g, '') } });
   return transport;
 }
+// Every email is BCC'd to NOTIFY_BCC, or to the sending account when that isn't set.
+const BCC = env.NOTIFY_BCC || env.GMAIL_USER;
 async function send(to, ev) {
   const m = compose(ev);
-  await mailer().sendMail({ from: `"Feetpics Ice Bot" <${env.GMAIL_USER}>`, to, subject: m.subject, html: m.html, text: m.text, attachments: m.attachments });
+  const bcc = BCC && BCC.toLowerCase() !== to.toLowerCase() ? BCC : undefined;
+  await mailer().sendMail({ from: `"Feetpics Ice Bot" <${env.GMAIL_USER}>`, to, bcc, subject: m.subject, html: m.html, text: m.text, attachments: m.attachments });
   return m.subject;
 }
 
