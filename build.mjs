@@ -639,6 +639,16 @@ if (timedIces.length) {
     { title: 'Slowest ice', value: `${slowest.secs.toFixed(2)} s`, teamId: teamOfOwner(slowest.ownerId).id, note: iceNote(slowest) },
   );
 }
+// Most completed trades (ties broken by trade offers sent).
+const dealer = [...wire.teams].sort((a, b) => b.trades - a.trades || b.offers - a.offers)[0];
+if (dealer?.trades) {
+  const tied = wire.teams.filter((r) => r.trades === dealer.trades && r.teamId !== dealer.teamId);
+  awards.push({
+    title: 'Used Car Salesman', value: String(dealer.trades), teamId: dealer.teamId,
+    note: `Most trades completed${dealer.offers ? `, from ${dealer.offers} offers sent` : ''}${tied.length ? `; tied with ${tied.map((r) => owners[team[r.teamId].ownerId].name).join(', ')}` : ''}`,
+  });
+}
+
 const mostIces = iceTable[0];
 if (mostIces?.earned) {
   const tied = iceTable.filter((r) => r.earned === mostIces.earned);

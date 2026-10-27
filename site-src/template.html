@@ -366,6 +366,13 @@ td.top3 div:first-child b { color: var(--gold); }
 .award strong { font-weight: 700; line-height: 1.25; }
 .award small { color: var(--ink-2); font-size: 12.5px; }
 
+/* Award rows: a label, then the related awards side by side at equal width */
+.award-rows { display: grid; gap: 18px; }
+.award-row { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 14px; align-items: stretch; }
+.award-row-label { margin: 0; align-self: center; font-family: var(--font-display); font-weight: 800; font-size: 18px; text-transform: uppercase; letter-spacing: .03em; color: var(--ink-2); line-height: 1.1; }
+.award-row-cards { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 14px; }
+.award-row-cards .award { height: 100%; }
+
 /* History */
 .banners { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 14px; }
 .banner { padding: 20px 22px; display: grid; gap: 6px; align-content: start; position: relative; overflow: hidden; }
@@ -491,6 +498,9 @@ td.hl-all { background: color-mix(in oklab, var(--gold) 8%, transparent); }
 footer { color: var(--muted); font-size: 12.5px; border-top: 1px solid var(--line); background: var(--surface); }
 footer .wrap { padding-block: 18px 32px; display: flex; flex-wrap: wrap; gap: 8px 16px; justify-content: space-between; }
 
+@media (max-width: 900px) {
+  .award-row { grid-template-columns: 1fr; gap: 8px; }
+}
 @media (max-width: 760px) {
   .two-col { grid-template-columns: 1fr; }
   .lineups { grid-template-columns: 1fr; }
@@ -666,6 +676,12 @@ footer .wrap { padding-block: 18px 32px; display: flex; flex-wrap: wrap; gap: 8p
   select { width: 100%; }
   .block-head label.note { width: 100%; }
 
+  /* Award rows: label above, pairs side by side, a third card spans the row */
+  .award-rows { gap: 16px; }
+  .award-row { grid-template-columns: 1fr; gap: 6px; }
+  .award-row-label { font-size: 15px; }
+  .award-row-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .award-row-cards > :last-child:nth-child(odd) { grid-column: 1 / -1; }
   /* Cards: two-up awards and records, tighter tiles and matchups */
   .awards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .award { padding: 12px; gap: 3px; }
@@ -959,7 +975,7 @@ footer .wrap { padding-block: 18px 32px; display: flex; flex-wrap: wrap; gap: 8p
           <h2>Season awards</h2>
           <p id="awards-note"></p>
         </div>
-        <div class="awards" id="awards-grid"></div>
+        <div class="award-rows" id="awards-grid"></div>
       </div>
     </section>
 
@@ -1877,13 +1893,31 @@ const AWARD_STYLE = {
   'Closest game': ['😬', 'var(--gold)'], 'Most points in a loss': ['😭', 'var(--violet)'], 'Ugliest win': ['🙈', 'var(--lime)'],
   'Best player week': ['⭐', 'var(--gold)'], 'Worst starter week': ['🥔', 'var(--bad)'], 'Coach of the year': ['🧠', 'var(--accent)'],
   'Bench Cuck': ['🪑', 'var(--violet)'], 'Luckiest record': ['🍀', 'var(--lime)'], 'Unluckiest record': ['💀', 'var(--bad)'],
-  'Waiver wire addict': ['🛒', 'var(--ice)'], 'Fastest ice': ['⚡', 'var(--ice)'], 'Slowest ice': ['🐢', 'var(--ice)'], 'Most ices': ['🧊', 'var(--ice)'],
+  'Waiver wire addict': ['🛒', 'var(--ice)'], 'Used Car Salesman': ['🚗', 'var(--violet)'], 'Fastest ice': ['⚡', 'var(--ice)'], 'Slowest ice': ['🐢', 'var(--ice)'], 'Most ices': ['🧊', 'var(--ice)'],
 };
+// Awards sit in rows of matching pairs (best next to worst); anything new lands in a final row.
+const AWARD_ROWS = [
+  ['Scores', ['Top score of the season', 'Lowest score']],
+  ['Margins', ['Biggest blowout', 'Closest game']],
+  ['Wrong side of the result', ['Most points in a loss', 'Ugliest win']],
+  ['Player weeks', ['Best player week', 'Worst starter week']],
+  ['Lineups', ['Coach of the year', 'Bench Cuck']],
+  ['Luck', ['Luckiest record', 'Unluckiest record']],
+  ['Ice', ['Fastest ice', 'Slowest ice', 'Most ices']],
+  ['Roster moves', ['Waiver wire addict', 'Used Car Salesman']],
+];
 function renderAwards() {
   $('awards-note').textContent = `Through week ${L.lastWeek}.`;
-  $('awards-grid').innerHTML = D.awards.map((a) => {
+  const card = (a) => {
     const [icon, k] = AWARD_STYLE[a.title] || ['🏅', 'var(--accent)'];
     return `<div class="panel award lift" style="--k:${k}"><i class="emoji big-emoji" aria-hidden="true">${icon}</i><span>${esc(a.title)}</span><b>${esc(a.value)}</b><strong>${esc(T[a.teamId].name)}</strong><small>${esc(T[a.teamId].owner)} · ${esc(a.note)}</small></div>`;
+  };
+  const placed = new Set(AWARD_ROWS.flatMap(([, titles]) => titles));
+  const rows = [...AWARD_ROWS, ['More', D.awards.filter((a) => !placed.has(a.title)).map((a) => a.title)]];
+  $('awards-grid').innerHTML = rows.map(([label, titles]) => {
+    const cards = titles.map((t) => D.awards.find((a) => a.title === t)).filter(Boolean);
+    return cards.length ? `<div class="award-row"><h3 class="award-row-label">${esc(label)}</h3>
+      <div class="award-row-cards" style="--n:${cards.length}">${cards.map(card).join('')}</div></div>` : '';
   }).join('');
 }
 
