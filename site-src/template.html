@@ -165,17 +165,18 @@ button { font: inherit; color: inherit; }
 nav.tabs { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 10; background: color-mix(in oklab, var(--bg) 95%, transparent); border-bottom: 1px solid var(--line); }
 nav.tabs .wrap { display: flex; gap: 2px; align-items: center; }
 .tablist { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; flex: 1; min-width: 0; }
-nav.tabs a {
+nav.tabs .tablist a {
   display: inline-flex; align-items: center; gap: 6px;
   font-family: var(--font-display); font-weight: 800; font-size: 17px; letter-spacing: .03em; text-transform: uppercase;
   color: var(--muted); text-decoration: none; padding: 12px 8px 9px; border-bottom: 3px solid transparent; white-space: nowrap; transition: color .2s;
 }
-nav.tabs a .emoji { font-size: 16px; filter: grayscale(.7); transition: filter .2s, transform .2s; }
-nav.tabs a:hover { color: var(--ink); }
-nav.tabs a:hover .emoji { filter: none; transform: scale(1.15) rotate(-6deg); }
-nav.tabs a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--accent); }
-nav.tabs a[aria-current="page"] .emoji { filter: none; }
+nav.tabs .tablist a .emoji { font-size: 16px; filter: grayscale(.7); transition: filter .2s, transform .2s; }
+nav.tabs .tablist a:hover { color: var(--ink); }
+nav.tabs .tablist a:hover .emoji { filter: none; transform: scale(1.15) rotate(-6deg); }
+nav.tabs .tablist a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--accent); }
+nav.tabs .tablist a[aria-current="page"] .emoji { filter: none; }
 .theme-btn { flex: none; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line-strong); background: var(--surface); border-radius: 999px; padding: 5px 12px; cursor: pointer; font-size: 13px; font-weight: 700; }
+.cover-btn { color: var(--ink); text-decoration: none; }
 .theme-btn:hover { border-color: var(--accent); }
 
 main .wrap { padding-block: 30px 72px; }
@@ -536,11 +537,11 @@ footer .wrap { padding-block: 18px 32px; display: flex; flex-wrap: wrap; gap: 8p
 /* "Animations off": everything holds still. The ticker becomes a row you can swipe or scroll. */
 .no-fx *, .no-fx *::before, .no-fx *::after { animation: none !important; transition: none !important; }
 .no-fx .lift:hover, .no-fx .pick:hover, .no-fx .chip:hover, .no-fx .weekbar button:hover { transform: none; }
-.no-fx nav.tabs a:hover .emoji, .no-fx .award:hover .big-emoji { transform: none; }
+.no-fx nav.tabs .tablist a:hover .emoji, .no-fx .award:hover .big-emoji { transform: none; }
 .no-fx .ticker { overflow-x: auto; scrollbar-width: none; }
 .no-fx .ticker .track span[aria-hidden] { display: none; }
 /* Ten tabs: the laptop tab bar shows labels only so every tab fits on one line (the page is at most 1160px wide). */
-nav.tabs a .emoji { display: none; }
+nav.tabs .tablist a .emoji { display: none; }
 @media (max-width: 1240px) {
   .theme-btn span:last-child { display: none; }
   .theme-btn { padding: 5px 9px; }
@@ -606,6 +607,7 @@ nav.tabs a .emoji { display: none; }
   .more-grid a .emoji { font-size: 24px; }
   .more-grid a[aria-current="page"] { background: color-mix(in oklab, var(--accent) 18%, var(--surface-solid)); box-shadow: inset 0 0 0 2px var(--accent); }
   .more-toggles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .more-toggles .cover-btn { grid-column: 1 / -1; }
   .more-toggles .theme-btn { justify-content: center; padding: 10px; }
   .more-toggles .theme-btn span:last-child { display: inline; }
   main .wrap { padding-block: 22px calc(96px + env(safe-area-inset-bottom, 0px)); }
@@ -784,6 +786,7 @@ nav.tabs a .emoji { display: none; }
 <nav class="tabs" aria-label="Sections">
   <div class="wrap">
     <div class="tablist" id="tabs"></div>
+    <a class="theme-btn cover-btn" id="cover-btn" href="index.html?cover" title="Back to the cover page" aria-label="Back to the cover page"><span class="emoji">🏟️</span><span>Cover</span></a>
     <button class="theme-btn" id="fx-btn" type="button" aria-label="Animations"></button>
     <button class="theme-btn" id="theme-btn" type="button" aria-label="Color theme"></button>
   </div>
@@ -1216,9 +1219,10 @@ $('bottom-nav').innerHTML = PRIMARY.map((id) => {
 }).join('') + `<button type="button" id="more-btn" aria-expanded="false" aria-controls="more-sheet"><i class="emoji" aria-hidden="true" id="more-icon">☰</i><span id="more-label">More</span></button>`;
 $('more-grid').innerHTML = VIEWS.filter(([v]) => !PRIMARY.includes(v)).map(([id, label, icon]) =>
   `<a href="#${id}" data-view="${id}"><i class="emoji" aria-hidden="true">${icon}</i><span>${label}</span></a>`).join('');
-$('more-toggles').innerHTML = `<button type="button" class="theme-btn" data-proxy="theme-btn"></button><button type="button" class="theme-btn" data-proxy="fx-btn"></button>`;
+$('more-toggles').innerHTML = `<button type="button" class="theme-btn" data-proxy="theme-btn"></button><button type="button" class="theme-btn" data-proxy="fx-btn"></button>`
+  + `<a class="theme-btn cover-btn" href="index.html?cover"><span class="emoji">🏟️</span><span>Back to cover page</span></a>`;
 function syncToggles() {
-  for (const b of $('more-toggles').children) b.innerHTML = $(b.dataset.proxy).innerHTML;
+  for (const b of $('more-toggles').querySelectorAll('[data-proxy]')) b.innerHTML = $(b.dataset.proxy).innerHTML;
 }
 $('more-toggles').addEventListener('click', (e) => {
   const b = e.target.closest('button'); if (!b) return;

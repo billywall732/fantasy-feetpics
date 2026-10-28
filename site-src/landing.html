@@ -15,7 +15,9 @@
   // Deep links (…/#ice) and the home-screen app go straight to the site; the landing page is the front door only.
   (function () {
     var standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-    if (location.hash.length > 1 || standalone) location.replace('app.html' + location.hash);
+    // ?cover (the site's "Cover" button) always shows this page.
+    var wantCover = /(^|[?&])cover\b/.test(location.search.slice(1));
+    if (!wantCover && (location.hash.length > 1 || standalone)) location.replace('app.html' + location.hash);
   })();
 </script>
 <style>
