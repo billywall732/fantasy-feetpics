@@ -403,6 +403,12 @@ td.titles .no-title { color: var(--muted); font-family: var(--font-display); fon
 .champ { display: flex; align-items: center; gap: 8px; }
 .champ .crown svg { width: 30px; height: 25px; }
 
+/* Ice mascot beside "Ices due" */
+.ice-due-block { grid-template-columns: minmax(0, 1fr) 230px; column-gap: 28px; align-items: start; }
+.ice-due-main { display: grid; gap: 14px; min-width: 0; align-content: start; }
+.ice-mascot { width: 230px; height: auto; position: sticky; top: 72px; filter: drop-shadow(0 12px 20px rgb(0 0 0 / .25)); animation: hero 5s ease-in-out infinite; transform-origin: 50% 100%; }
+@keyframes hero { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-8px) rotate(2deg); } }
+
 /* Ice */
 .due-head { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: end; justify-content: space-between; padding-bottom: 12px; border-bottom: 2px solid var(--line); margin-bottom: 14px; }
 .due-head h3 { font-family: var(--font-display); font-weight: 900; font-size: clamp(26px, 4vw, 38px); line-height: 1.05; text-transform: uppercase; margin-top: 2px; }
@@ -658,6 +664,10 @@ footer .wrap { padding-block: 18px 32px; display: flex; flex-wrap: wrap; gap: 8p
   /* Got away: "dropped by" moves under the player */
   #wire-regrets tr > :nth-child(2) { display: none; }
   #ice-watch tr > :nth-child(3), #ice-watch tr > :nth-child(4) { display: none; }
+  /* Mascot shrinks and sits beside the "Ices due" heading */
+  .ice-due-block { grid-template-columns: minmax(0, 1fr); position: relative; }
+  .ice-mascot { position: absolute; top: -10px; right: -4px; width: 86px; }
+  .ice-due-block .block-head { padding-right: 88px; min-height: 112px; align-content: start; }
   /* What if: stacked controls and cards */
   .whatif { padding: 12px; }
   .wi-controls { grid-template-columns: minmax(0, 1fr) auto; }
@@ -823,12 +833,15 @@ footer .wrap { padding-block: 18px 32px; display: flex; flex-wrap: wrap; gap: 8p
     </section>
 
     <section class="view" id="view-ice" hidden>
-      <div class="block">
-        <div class="block-head">
-          <h2>Ices due</h2>
-          <p>One ice for the week's lowest team score and one for every starter at 0 or fewer points. Doubled in the playoffs. Due Thursday at 8:00 PM ET after the week ends.</p>
+      <div class="block ice-due-block">
+        <div class="ice-due-main">
+          <div class="block-head">
+            <h2>Ices due</h2>
+            <p>One ice for the week's lowest team score and one for every starter at 0 or fewer points. Doubled in the playoffs. Due Thursday at 8:00 PM ET after the week ends.</p>
+          </div>
+          <div id="ice-due"></div>
         </div>
-        <div id="ice-due"></div>
+        <img class="ice-mascot" src="ice-mascot.png" width="385" height="520" alt="" loading="lazy" decoding="async">
       </div>
       <div class="block">
         <div class="block-head">
