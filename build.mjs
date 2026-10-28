@@ -478,7 +478,7 @@ const highsLows = doneWeeks.map((w) => {
 
 // ---------- Ice ----------
 // One ice per instance: the week's lowest team score, and every starter with 0 or fewer points.
-// Doubled in the playoffs. Due Thursday 8:00 PM Eastern after the week's last NFL game.
+// Doubled in the playoffs. Due at the next Thursday night kickoff; a missed deadline doubles it (stated rule, not tracked).
 const nflWeeks = read('data/nfl-weeks.json');
 const periodOf = {};
 for (const [mp, sps] of Object.entries(cur.settings.scheduleSettings.matchupPeriods)) for (const sp of sps) periodOf[sp] = Number(mp);
@@ -495,9 +495,13 @@ function etToUtc(y, mo, d, h) {
   }
   return Date.UTC(y, mo - 1, d, h + 5);
 }
+// Ices are due at kickoff of the next week's first game (normally Thursday Night Football).
+// If that game isn't known (end of season), fall back to Thursday 8:00 PM ET after the week ends.
 function deadlineFor(sp) {
   const last = nflWeeks[sp]?.last;
   if (!last) return null;
+  const nextKick = nflWeeks[sp + 1]?.first;
+  if (nextKick && nextKick > last) return nextKick;
   const p = etParts(last);
   const days = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
   let ahead = (4 - days[p.weekday] + 7) % 7 || 7; // the next Thursday after the last game
@@ -823,6 +827,113 @@ const schedules = Object.fromEntries(years.map((y) => {
   return [y, { weeks: weeksList, owners: ownersIn, teamNames, results: weeksOut }];
 }));
 
+// ---------- League rules (from ESPN's league settings) ----------
+// ESPN scoring stat IDs -> [group, label]. Stat 88 (missed PAT) checked against real box scores.
+const STAT_NAMES = {
+  3: ['Passing', 'Passing yards'], 4: ['Passing', 'TD pass'], 19: ['Passing', '2-pt conversion pass'], 20: ['Passing', 'Interception thrown'],
+  24: ['Rushing', 'Rushing yards'], 25: ['Rushing', 'TD rush'], 26: ['Rushing', '2-pt conversion rush'],
+  42: ['Receiving', 'Receiving yards'], 43: ['Receiving', 'TD reception'], 44: ['Receiving', '2-pt conversion reception'], 53: ['Receiving', 'Each reception'],
+  63: ['Miscellaneous', 'Fumble recovered for TD'], 72: ['Miscellaneous', 'Fumble lost'],
+  101: ['Miscellaneous', 'Kickoff return TD'], 102: ['Miscellaneous', 'Punt return TD'], 103: ['Miscellaneous', 'Interception return TD'], 104: ['Miscellaneous', 'Fumble return TD'],
+  80: ['Kicking', 'FG made 0-39 yds'], 77: ['Kicking', 'FG made 40-49 yds'], 74: ['Kicking', 'FG made 50+ yds'], 198: ['Kicking', 'FG made 50-59 yds'], 201: ['Kicking', 'FG made 60+ yds'],
+  85: ['Kicking', 'FG missed'], 86: ['Kicking', 'PAT made'], 88: ['Kicking', 'PAT missed'],
+  89: ['Defense & special teams', '0 points allowed'], 90: ['Defense & special teams', '1-6 points allowed'], 91: ['Defense & special teams', '7-13 points allowed'],
+  92: ['Defense & special teams', '14-17 points allowed'], 121: ['Defense & special teams', '18-21 points allowed'], 122: ['Defense & special teams', '22-27 points allowed'],
+  123: ['Defense & special teams', '28-34 points allowed'], 124: ['Defense & special teams', '35-45 points allowed'], 125: ['Defense & special teams', '46+ points allowed'],
+  128: ['Defense & special teams', 'Under 100 yards allowed'], 129: ['Defense & special teams', '100-199 yards allowed'], 130: ['Defense & special teams', '200-299 yards allowed'],
+  131: ['Defense & special teams', '300-349 yards allowed'], 132: ['Defense & special teams', '350-399 yards allowed'], 133: ['Defense & special teams', '400-449 yards allowed'],
+  134: ['Defense & special teams', '450-499 yards allowed'], 135: ['Defense & special teams', '500-549 yards allowed'], 136: ['Defense & special teams', '550+ yards allowed'],
+  93: ['Defense & special teams', 'Blocked kick returned for TD'], 95: ['Defense & special teams', 'Interception'], 96: ['Defense & special teams', 'Fumble recovered'],
+  97: ['Defense & special teams', 'Blocked kick'], 98: ['Defense & special teams', 'Safety'], 99: ['Defense & special teams', 'Sack'],
+  206: ['Defense & special teams', '2-pt return'], 209: ['Defense & special teams', '1-pt safety'],
+};
+// Reading order within each scoring group (short FGs to long, fewest points/yards allowed to most).
+const STAT_ORDER = [3, 4, 19, 20, 24, 25, 26, 53, 42, 43, 44, 80, 77, 74, 198, 201, 85, 86, 88,
+  99, 95, 96, 97, 98, 93, 206, 209, 89, 90, 91, 92, 121, 122, 123, 124, 125, 128, 129, 130, 131, 132, 133, 134, 135, 136,
+  101, 102, 103, 104, 63, 72];
+const rules = (() => {
+  const st = cur.settings;
+  const fmtPts = (p) => {
+    if (p > 0 && p < 1) return `1 pt per ${Math.round(1 / p)} yds`;
+    return `${p > 0 ? '+' : ''}${Number.isInteger(p) ? p : p.toFixed(2)} ${Math.abs(p) === 1 ? 'pt' : 'pts'}`;
+  };
+  const etDay = (ms) => ms ? new Date(ms).toLocaleString('en-US', { timeZone: ET, weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) + ' ET' : '—';
+  const yesNo = (b) => (b ? 'Yes' : 'No');
+  const titleCase = (s) => String(s ?? '').toLowerCase().replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+
+  // Scoring: one row per item; D/ST overrides apply to defense rows.
+  const groups = {};
+  const unknown = [];
+  for (const it of st.scoringSettings.scoringItems) {
+    const def = STAT_NAMES[it.statId];
+    if (!def) unknown.push(it.statId);
+    const [group, label] = def || ['Other', `Stat #${it.statId}`];
+    const pts = group.startsWith('Defense') && it.pointsOverrides?.[16] !== undefined ? it.pointsOverrides[16] : it.points;
+    if (!pts) continue;
+    (groups[group] ??= []).push({ label, value: fmtPts(pts), id: it.statId });
+  }
+  if (unknown.length) console.warn(`Scoring stat IDs without a name: ${unknown.join(', ')}`);
+  const ORDER = ['Passing', 'Rushing', 'Receiving', 'Kicking', 'Defense & special teams', 'Miscellaneous', 'Other'];
+  const scoring = ORDER.filter((g) => groups[g]).map((g) => ({ group: g, items: groups[g].sort((a, b) => (STAT_ORDER.indexOf(a.id) + 1 || 999) - (STAT_ORDER.indexOf(b.id) + 1 || 999)).map(({ label, value }) => ({ label, value })) }));
+
+  const counts = st.rosterSettings.lineupSlotCounts;
+  const lineup = [[0, 'QB'], [2, 'RB'], [4, 'WR'], [6, 'TE'], [23, 'FLEX (RB/WR/TE)'], [16, 'D/ST'], [17, 'K'], [20, 'Bench'], [21, 'IR']]
+    .filter(([id]) => counts[id] > 0).map(([id, label]) => ({ label, value: String(counts[id]) }));
+  // Most of each position a team may carry (ESPN position IDs; -1/0 = no limit).
+  const limits = Object.entries(st.rosterSettings.positionLimits)
+    .filter(([id, v]) => v > 0 && POS[id])
+    .map(([id, v]) => ({ label: `Max ${POS[id]} on roster`, value: String(v) }));
+  const acq = st.acquisitionSettings, tr = st.tradeSettings, sch = st.scheduleSettings, dr = st.draftSettings;
+  const DAYS = { MONDAY: 'Mon', TUESDAY: 'Tue', WEDNESDAY: 'Wed', THURSDAY: 'Thu', FRIDAY: 'Fri', SATURDAY: 'Sat', SUNDAY: 'Sun' };
+  const hour = (h) => `${((h + 11) % 12) + 1}:00 ${h < 12 ? 'AM' : 'PM'}`;
+  const fees = Object.values(st.financeSettings || {}).some((v) => v > 0);
+
+  return {
+    sections: [
+      { title: 'Basics', icon: '🏈', rows: [
+        { label: 'League name', value: st.name.trim() }, { label: 'Teams', value: String(st.size) },
+        { label: 'Scoring type', value: st.scoringSettings.scoringType === 'H2H_POINTS' ? 'Head-to-head points' : titleCase(st.scoringSettings.scoringType) },
+        { label: 'Receptions', value: (() => { const r = st.scoringSettings.scoringItems.find((i) => i.statId === 53)?.points ?? 0; return r === 1 ? 'Full PPR (1 pt each)' : r ? `${r} pts each` : 'Standard (none)'; })() },
+        { label: 'Ties', value: st.scoringSettings.matchupTieRule === 'NONE' ? 'Ties stand' : titleCase(st.scoringSettings.matchupTieRule) },
+        { label: 'League fees', value: fees ? 'Yes' : 'None' },
+      ] },
+      { title: 'Roster & lineup', icon: '👥', rows: [
+        ...lineup,
+        { label: 'Lineup locks', value: st.rosterSettings.rosterLocktimeType === 'INDIVIDUAL_GAME' ? 'At each player\'s game time' : titleCase(st.rosterSettings.rosterLocktimeType) },
+        ...limits,
+      ] },
+      { title: 'Schedule & playoffs', icon: '🗓️', rows: [
+        { label: 'Regular season', value: `${sch.matchupPeriodCount} weeks` },
+        { label: 'Playoff teams', value: String(sch.playoffTeamCount) },
+        { label: 'Playoff rounds', value: `${sch.playoffMatchupPeriodLength} weeks each` },
+        { label: 'Playoffs start', value: `Week ${sch.matchupPeriodCount + 1}` },
+        { label: 'Seeding', value: sch.playoffSeedingRule === 'H2H_RECORD' ? 'Head-to-head record' : titleCase(sch.playoffSeedingRule) },
+        { label: 'Playoff ties', value: st.scoringSettings.playoffMatchupTieRule === 'NONE' ? 'Higher seed advances' : titleCase(st.scoringSettings.playoffMatchupTieRule) },
+      ] },
+      { title: 'Draft', icon: '📝', rows: [
+        { label: 'Type', value: titleCase(dr.type) }, { label: 'Date', value: etDay(dr.date) },
+        { label: 'Time per pick', value: `${dr.timePerSelection} seconds` },
+        { label: 'Draft order', value: titleCase(dr.orderType) }, { label: 'Keepers', value: dr.keeperCount ? String(dr.keeperCount) : 'None' },
+      ] },
+      { title: 'Waivers & free agents', icon: '⏳', rows: [
+        { label: 'System', value: acq.isUsingAcquisitionBudget ? `FAAB ($${acq.acquisitionBudget})` : 'Traditional waivers' },
+        { label: 'Waiver period', value: `${acq.waiverHours} hours` },
+        { label: 'Waivers process', value: `${(acq.waiverProcessDays || []).map((d) => DAYS[d] ?? d).join(', ')} at ${hour(acq.waiverProcessHour)} ET` },
+        { label: 'Waiver order', value: acq.waiverOrderReset ? 'Resets each week' : 'Rolling' },
+        { label: 'Acquisition limit', value: acq.acquisitionLimit < 0 ? 'No limit' : String(acq.acquisitionLimit) },
+      ] },
+      { title: 'Trades', icon: '🤝', rows: [
+        { label: 'Trade deadline', value: etDay(tr.deadlineDate) },
+        { label: 'Review period', value: `${tr.revisionHours} hours` },
+        { label: 'Veto votes needed', value: tr.vetoVotesRequired ? String(tr.vetoVotesRequired) : 'None' },
+        { label: 'Trade limit', value: tr.max < 0 ? 'No limit' : String(tr.max) },
+      ] },
+    ],
+    scoring,
+    ice: { multiplier, missedMultiplier: 2 },
+  };
+})();
+
 // ---------- Output ----------
 const model = {
   league: { name: cur.settings.name.trim(), season: SEASON, currentWeek, lastWeek, regWeeks, playoffTeams, size: teams.length, trades, updated: cur.status.standingsUpdateDate, built: Date.now(), leagueId: env.LEAGUE_ID, weekStart: weekSpans[currentWeek]?.first ?? null, weekEnd: weekSpans[currentWeek]?.last ?? null },
@@ -841,6 +952,7 @@ const model = {
   records,
   ownerHighLow,
   schedules,
+  rules,
   highsLows,
   ice: { weeks: iceWeeks, log: iceLog, table: iceTable, multiplier, currentSp: latestSp },
 };

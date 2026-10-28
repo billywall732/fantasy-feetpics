@@ -403,6 +403,22 @@ td.titles .no-title { color: var(--muted); font-family: var(--font-display); fon
 .champ { display: flex; align-items: center; gap: 8px; }
 .champ .crown svg { width: 30px; height: 25px; }
 
+/* League rules */
+.rules-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: 14px; align-items: start; }
+.rules-card { padding: 16px 18px; }
+.rules-card h3 { margin: 0 0 8px; font-family: var(--font-display); font-weight: 800; font-size: 21px; text-transform: uppercase; letter-spacing: .02em; }
+.rules-list { margin: 0; display: grid; }
+.rules-list > div { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.rules-list > div:last-child { border-bottom: 0; }
+.rules-list dt { color: var(--ink-2); }
+.rules-list dd { margin: 0; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+.ice-rules { position: relative; overflow: hidden; padding: 20px 22px; margin-bottom: 16px; padding-right: 210px; min-height: 250px;
+  background: linear-gradient(150deg, color-mix(in oklab, var(--ice) 16%, var(--surface-solid)), var(--surface-solid) 70%); border: 1px solid color-mix(in oklab, var(--ice) 35%, transparent); }
+.ice-rules h3 { margin: 0; font-family: var(--font-display); font-weight: 900; font-size: 30px; text-transform: uppercase; }
+.ice-rules .lede { margin: 4px 0 12px; color: var(--ink-2); }
+.ice-rules ol { margin: 0 0 12px; padding-left: 22px; display: grid; gap: 8px; line-height: 1.45; }
+.ice-rules-mascot { position: absolute; right: 18px; bottom: -10px; width: 170px; height: auto; filter: drop-shadow(0 10px 16px rgb(0 0 0 / .25)); }
+
 /* Ice mascot beside "Ices due" */
 .ice-due-block { grid-template-columns: minmax(0, 1fr) 230px; column-gap: 28px; align-items: start; }
 .ice-due-main { display: grid; gap: 14px; min-width: 0; align-content: start; }
@@ -523,6 +539,8 @@ footer .wrap { padding-block: 18px 32px; display: flex; flex-wrap: wrap; gap: 8p
 .no-fx nav.tabs a:hover .emoji, .no-fx .award:hover .big-emoji { transform: none; }
 .no-fx .ticker { overflow-x: auto; scrollbar-width: none; }
 .no-fx .ticker .track span[aria-hidden] { display: none; }
+/* Ten tabs: the laptop tab bar shows labels only so every tab fits on one line (the page is at most 1160px wide). */
+nav.tabs a .emoji { display: none; }
 @media (max-width: 1240px) {
   .theme-btn span:last-child { display: none; }
   .theme-btn { padding: 5px 9px; }
@@ -664,6 +682,9 @@ footer .wrap { padding-block: 18px 32px; display: flex; flex-wrap: wrap; gap: 8p
   /* Got away: "dropped by" moves under the player */
   #wire-regrets tr > :nth-child(2) { display: none; }
   #ice-watch tr > :nth-child(3), #ice-watch tr > :nth-child(4) { display: none; }
+  .ice-rules { padding: 16px; padding-right: 16px; min-height: 0; }
+  .ice-rules h3 { font-size: 24px; padding-right: 70px; }
+  .ice-rules-mascot { width: 64px; top: 8px; right: 10px; bottom: auto; }
   /* Mascot shrinks and sits beside the "Ices due" heading */
   .ice-due-block { grid-template-columns: minmax(0, 1fr); position: relative; }
   .ice-mascot { position: absolute; top: -10px; right: -4px; width: 86px; }
@@ -837,7 +858,7 @@ footer .wrap { padding-block: 18px 32px; display: flex; flex-wrap: wrap; gap: 8p
         <div class="ice-due-main">
           <div class="block-head">
             <h2>Ices due</h2>
-            <p>One ice for the week's lowest team score and one for every starter at 0 or fewer points. Doubled in the playoffs. Due Thursday at 8:00 PM ET after the week ends.</p>
+            <p>One ice for the week's lowest team score and one for every starter at 0 or fewer points. Doubled in the playoffs. Due at the next Thursday night kickoff; a missed deadline doubles it.</p>
           </div>
           <div id="ice-due"></div>
         </div>
@@ -993,6 +1014,21 @@ footer .wrap { padding-block: 18px 32px; display: flex; flex-wrap: wrap; gap: 8p
       </div>
     </section>
 
+    <section class="view" id="view-rules" hidden>
+      <div class="block">
+        <div class="block-head">
+          <h2>League Rules</h2>
+          <p>From the league's ESPN settings, updated automatically. <a href="https://fantasy.espn.com/football/league/settings?leagueId=395796507" target="_blank" rel="noopener">View on ESPN ↗</a></p>
+        </div>
+        <div id="ice-rules"></div>
+        <div class="rules-grid" id="rules-sections"></div>
+      </div>
+      <div class="block">
+        <div class="block-head"><h2>Scoring</h2><p>Points awarded to starters. Defense &amp; special teams scoring applies to your D/ST.</p></div>
+        <div class="rules-grid" id="rules-scoring"></div>
+      </div>
+    </section>
+
     <section class="view" id="view-history" hidden>
       <div class="block">
         <div class="block-head"><h2>Champions</h2></div>
@@ -1126,7 +1162,7 @@ showFresh(); setInterval(showFresh, 60000);
 }
 
 /* ---------- Tabs ---------- */
-const VIEWS = [['standings', 'Standings', '📊'], ['matchups', 'Matchups', '🏈'], ['ice', 'Ice', '🧊'], ['power', 'Power', '⚡'], ['teams', 'Teams', '👥'], ['wire', 'Wire & Trades', '🔄'], ['draft', 'Draft', '📝'], ['awards', 'Awards', '🏅'], ['history', 'History', '🏛️']];
+const VIEWS = [['standings', 'Standings', '📊'], ['matchups', 'Matchups', '🏈'], ['ice', 'Ice', '🧊'], ['power', 'Power', '⚡'], ['teams', 'Teams', '👥'], ['wire', 'Wire & Trades', '🔄'], ['draft', 'Draft', '📝'], ['awards', 'Awards', '🏅'], ['history', 'History', '🏛️'], ['rules', 'League Rules', '📜']];
 $('tabs').innerHTML = VIEWS.map(([id, label, icon]) => `<a href="#${id}" data-view="${id}">${E(icon)}${label}</a>`).join('');
 let currentView = 'standings';
 // Each tab is built the first time it's opened, so the first load only builds Standings.
@@ -1140,6 +1176,7 @@ const RENDER = {
   draft: () => renderDraft(),
   awards: () => renderAwards(),
   history: () => renderHistory(),
+  rules: () => renderRules(),
 };
 const rendered = new Set();
 function show(id) {
@@ -1171,7 +1208,7 @@ window.addEventListener('hashchange', () => {
 
 /* ---------- Phone navigation: bottom bar with the main tabs, the rest under "More" ---------- */
 const PRIMARY = ['standings', 'matchups', 'ice', 'power'];
-const SHORT = { standings: 'Standings', matchups: 'Matchups', ice: 'Ice', power: 'Power', teams: 'Teams', wire: 'Wire', draft: 'Draft', awards: 'Awards', history: 'History' };
+const SHORT = { standings: 'Standings', matchups: 'Matchups', ice: 'Ice', power: 'Power', teams: 'Teams', wire: 'Wire', draft: 'Draft', awards: 'Awards', history: 'History', rules: 'Rules' };
 $('bottom-nav').innerHTML = PRIMARY.map((id) => {
   const [, , icon] = VIEWS.find(([v]) => v === id);
   return `<a href="#${id}" data-view="${id}"><i class="emoji" aria-hidden="true">${icon}</i><span>${SHORT[id]}</span></a>`;
@@ -1954,6 +1991,30 @@ function renderAwards() {
     return cards.length ? `<div class="award-row"><h3 class="award-row-label">${esc(label)}</h3>
       <div class="award-row-cards" style="--n:${cards.length}">${cards.map(card).join('')}</div></div>` : '';
   }).join('');
+}
+
+/* ---------- League rules ---------- */
+function renderRules() {
+  const R = D.rules;
+  const list = (rows) => `<dl class="rules-list">${rows.map((r) => `<div><dt>${esc(r.label)}</dt><dd>${esc(r.value)}</dd></div>`).join('')}</dl>`;
+  const m = R.ice.multiplier, miss = R.ice.missedMultiplier;
+  $('ice-rules').innerHTML = `<div class="panel ice-rules">
+    <img src="ice-mascot.png" alt="" class="ice-rules-mascot" loading="lazy" width="385" height="520">
+    <h3>🧊 Smirnoff Ice Penalties</h3>
+    <p class="lede">Earn one, chug one. Here's how ices are handed out.</p>
+    <ol>
+      <li><b>Lowest score of the week.</b> The team with the week's lowest score owes one ice. If teams tie for lowest, each owes one.</li>
+      <li><b>Zero-point starters.</b> Every player in your starting lineup who finishes the week with 0 or fewer points earns you one ice.</li>
+      <li><b>Deadline: Thursday night kickoff.</b> Ices must be finished before kickoff of the following Thursday night game.</li>
+      <li><b>Miss the deadline, it doubles.</b> An ice not done by Thursday night kickoff counts ×${miss}.</li>
+      <li><b>Playoffs count double.</b> Every ice earned in a playoff game counts ×${m}.</li>
+    </ol>
+    <p class="note">The <a href="#ice">Ice tab</a> tracks who owes each week, and the person who owes gets an email when an ice locks in.</p>
+  </div>`;
+  $('rules-sections').innerHTML = R.sections.map((s) => `<div class="panel rules-card"><h3><i class="emoji">${s.icon}</i> ${esc(s.title)}</h3>${list(s.rows)}</div>`).join('');
+  const SCORE_ICON = { Passing: '🎯', Rushing: '🏃', Receiving: '🙌', Kicking: '🦵', 'Defense & special teams': '🛡️', Miscellaneous: '✨', Other: '📋' };
+  $('rules-scoring').innerHTML = R.scoring.map((g) => `<div class="panel rules-card"><h3><i class="emoji">${SCORE_ICON[g.group] || '📋'}</i> ${esc(g.group)}</h3>${list(g.items.map((i) => ({ label: i.label, value: i.value })))}</div>`).join('');
+  $('rules-scoring').querySelectorAll('dd').forEach((dd) => { if (dd.textContent.startsWith('-')) dd.classList.add('neg-val'); else if (dd.textContent.startsWith('+')) dd.classList.add('pos-val'); });
 }
 
 /* ---------- History ---------- */
