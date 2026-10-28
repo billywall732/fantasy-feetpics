@@ -895,7 +895,8 @@ const rules = (() => {
         { label: 'Scoring type', value: st.scoringSettings.scoringType === 'H2H_POINTS' ? 'Head-to-head points' : titleCase(st.scoringSettings.scoringType) },
         { label: 'Receptions', value: (() => { const r = st.scoringSettings.scoringItems.find((i) => i.statId === 53)?.points ?? 0; return r === 1 ? 'Full PPR (1 pt each)' : r ? `${r} pts each` : 'Standard (none)'; })() },
         { label: 'Ties', value: st.scoringSettings.matchupTieRule === 'NONE' ? 'Ties stand' : titleCase(st.scoringSettings.matchupTieRule) },
-        { label: 'League fees', value: fees ? 'Yes' : 'None' },
+        // The buy-in is collected outside ESPN, so it comes from league.config.json (leagueFee).
+        { label: 'League fee', value: config.leagueFee ? `$${config.leagueFee} per team` : fees ? 'Yes' : 'None' },
       ] },
       { title: 'Roster & lineup', icon: '👥', rows: [
         ...lineup,
