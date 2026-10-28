@@ -1,7 +1,7 @@
 {
   "name": "Fantasy Feetpics",
   "short_name": "Feetpics",
-  "start_url": "./",
+  "start_url": "app.html",
   "scope": "./",
   "display": "standalone",
   "background_color": "#04110b",

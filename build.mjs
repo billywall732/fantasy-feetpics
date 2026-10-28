@@ -861,7 +861,26 @@ let json = JSON.stringify(model).replace(/</g, '\\u003c');
 Object.keys(owners).forEach((id, i) => { json = json.split(id).join(`o${i + 1}`); });
 if (/\{[0-9A-F]{8}-[0-9A-F]{4}-/i.test(json)) throw new Error('An ESPN account ID is still in the page data.');
 mkdirSync(new URL('site/', import.meta.url), { recursive: true });
-writeFileSync(new URL('site/index.html', import.meta.url), template.replace('/*__DATA__*/null', json));
+// The full site is app.html; index.html is the landing page in front of it.
+writeFileSync(new URL('site/app.html', import.meta.url), template.replace('/*__DATA__*/null', json));
+{
+  const { latest, pending } = (() => {
+    const finals = iceWeeks.filter((w) => w.final);
+    return { latest: finals.at(-1), pending: iceWeeks.find((w) => !w.final) };
+  })();
+  const short = (ms) => new Date(ms).toLocaleString('en-US', { timeZone: ET, weekday: 'short', hour: 'numeric', minute: '2-digit' }) + ' ET';
+  const leader = model.teams[0];
+  const due = latest && latest.deadline > NOW ? latest : pending;
+  const landing = {
+    season: SEASON, size: teams.length, week: currentWeek, regWeeks,
+    live: matchups[currentWeek]?.some((g) => g.live) ?? false,
+    leader: leader ? `${leader.name} ${leader.w}-${leader.l}` : null,
+    ice: due?.deadline ? `Week ${due.week} ices due ${short(due.deadline)}` : null,
+  };
+  const landingHtml = minify(readFileSync(new URL('site-src/landing.html', import.meta.url), 'utf8'))
+    .replace('/*__LANDING__*/null', JSON.stringify(landing).replace(/</g, '\\u003c'));
+  writeFileSync(new URL('site/index.html', import.meta.url), landingHtml);
+}
 cpSync(new URL('site-src/fonts/', import.meta.url), new URL('site/fonts/', import.meta.url), { recursive: true });
 cpSync(new URL('site-src/static/', import.meta.url), new URL('site/', import.meta.url), { recursive: true });
 // Tiny file the page polls (cache-busted) to know when newer data has been published.

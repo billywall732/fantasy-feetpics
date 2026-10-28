@@ -19,7 +19,7 @@ const value = (name) => (args.includes(name) ? args[args.indexOf(name) + 1] : nu
 const DRY = flag('--dry-run');
 const TEST_TO = value('--test');
 const STATE = value('--state');
-const SITE_URL = 'https://billywall732.github.io/fantasy-feetpics/';
+const SITE_URL = 'https://billywall732.github.io/fantasy-feetpics/app.html';
 const here = (p) => new URL(p, import.meta.url);
 
 // ---------- Pictures: a random one from notify-images/<kind>/ ----------
