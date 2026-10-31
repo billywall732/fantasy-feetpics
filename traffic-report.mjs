@@ -111,6 +111,13 @@ const cell = (n) => {
   const a = 0.18 + 0.82 * (n / maxCell);
   return `<td title="${n}" style="background:rgba(13,138,72,${a.toFixed(2)});border:1px solid #fff;height:16px;text-align:center;font-size:9px;color:${a > 0.6 ? '#fff' : '#0c1810'}">${n}</td>`;
 };
+// Page-by-day cells use the same green scale as the hourly grid, relative to the busiest page-day.
+const maxPageCell = Math.max(1, ...pageRows.flatMap((p) => p.perDay));
+const pageCell = (n) => {
+  if (!n) return '<td style="padding:6px 2px;text-align:center;color:#c4cdc6;border:2px solid #fff;background:#f1f5f2">·</td>';
+  const a = 0.18 + 0.82 * (n / maxPageCell);
+  return `<td style="padding:6px 2px;text-align:center;font-weight:bold;border:2px solid #fff;background:rgba(13,138,72,${a.toFixed(2)});color:${a > 0.6 ? '#fff' : '#0c1810'}">${n}</td>`;
+};
 const tile = (label, value, sub) => `<td style="padding:6px" width="25%"><div style="background:#f4f8f5;border-radius:10px;padding:12px 10px">
   <div style="font-size:10px;letter-spacing:1.5px;color:#5a685f;font-weight:bold;text-transform:uppercase">${label}</div>
   <div style="font-size:26px;font-weight:900;color:#0c1810;line-height:1.2">${value}</div><div style="font-size:12px;color:#5a685f">${sub}</div></div></td>`;
@@ -155,7 +162,7 @@ const html = `<!doctype html><html><body style="margin:0;padding:0;background:#e
       </tr>
       ${pageRows.map((p, i) => `<tr style="background:${i % 2 ? '#ffffff' : '#f7faf8'}">
         <td style="padding:6px;font-weight:bold;white-space:nowrap">${esc(p.name)}</td>
-        ${p.perDay.map((n) => `<td style="padding:6px 2px;text-align:center;color:${n ? '#0c1810' : '#c4cdc6'}">${n || '·'}</td>`).join('')}
+        ${p.perDay.map((n) => pageCell(n)).join('')}
         <td style="padding:6px;text-align:right;font-weight:bold">${p.total}</td>
         <td style="padding:6px;text-align:right;color:#3a493f;white-space:nowrap">${p.peak == null ? '—' : hourLabel(p.peak)}</td>
       </tr>`).join('')}
