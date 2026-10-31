@@ -418,6 +418,9 @@ td.titles .no-title { color: var(--muted); font-family: var(--font-display); fon
 .ice-rules h3 { margin: 0; font-family: var(--font-display); font-weight: 900; font-size: 30px; text-transform: uppercase; }
 .ice-rules .lede { margin: 4px 0 12px; color: var(--ink-2); }
 .ice-rules ol { margin: 0 0 12px; padding-left: 22px; display: grid; gap: 8px; line-height: 1.45; }
+.ice-rules .sub-rules { margin: 16px 0 0; font-family: var(--font-display); font-weight: 800; font-size: 20px; text-transform: uppercase; letter-spacing: .02em; }
+.ice-rules .off-field { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 6px; line-height: 1.4; }
+.ice-rules .off-field li { display: flex; gap: 8px; align-items: baseline; }
 .ice-rules-mascot { position: absolute; right: 18px; bottom: -10px; width: 170px; height: auto; filter: drop-shadow(0 10px 16px rgb(0 0 0 / .25)); }
 
 /* Ice mascot beside "Ices due" */
@@ -2014,7 +2017,15 @@ function renderRules() {
       <li><b>Miss the deadline, it doubles.</b> An ice not done by Thursday night kickoff counts ×${miss}.</li>
       <li><b>Playoffs count double.</b> Every ice earned in a playoff game counts ×${m}.</li>
     </ol>
-    <p class="note">The <a href="#ice">Ice tab</a> tracks who owes each week, and the person who owes gets an email when an ice locks in.</p>
+    <h4 class="sub-rules">🚨 Off-the-field ices</h4>
+    <p class="lede">You also owe an ice if a player on your roster:</p>
+    <ul class="off-field">
+      <li><i class="emoji">🚔</i> Is arrested or detained <span class="note">(tickets don't count)</span></li>
+      <li><i class="emoji">👋</i> Retires during the season</li>
+      <li><i class="emoji">👶</i> Has a new baby momma</li>
+      <li><i class="emoji">🏳️‍🌈</i> Comes out as gay</li>
+    </ul>
+    <p class="note">The <a href="#ice">Ice tab</a> works out game ices automatically and emails whoever owes. Off-the-field ices aren't tracked automatically; log them in the league's ice sheet and they'll appear in the Ice tab's ice log with the reason given.</p>
   </div>`;
   $('rules-sections').innerHTML = R.sections.map((s) => `<div class="panel rules-card"><h3><i class="emoji">${s.icon}</i> ${esc(s.title)}</h3>${list(s.rows)}</div>`).join('');
   const SCORE_ICON = { Passing: '🎯', Rushing: '🏃', Receiving: '🙌', Kicking: '🦵', 'Defense & special teams': '🛡️', Miscellaneous: '✨', Other: '📋' };
