@@ -11,7 +11,7 @@ const fromFile = existsSync(file)
     )
   : {};
 
-const KEYS = ['ESPN_S2', 'ESPN_SWID', 'LEAGUE_ID', 'SEASON', 'ICE_SHEET_ID', 'ICE_SHEET_TAB', 'GMAIL_USER', 'GMAIL_APP_PASSWORD', 'ICE_EMAILS', 'NOTIFY_ENABLED', 'NOTIFY_BCC'];
+const KEYS = ['ESPN_S2', 'ESPN_SWID', 'LEAGUE_ID', 'SEASON', 'ICE_SHEET_ID', 'ICE_SHEET_TAB', 'GMAIL_USER', 'GMAIL_APP_PASSWORD', 'ICE_EMAILS', 'NOTIFY_ENABLED', 'NOTIFY_BCC', 'GOATCOUNTER_TOKEN'];
 export const env = Object.fromEntries(KEYS.map((k) => [k, process.env[k] || fromFile[k]]));
 
 const missing = ['ESPN_S2', 'ESPN_SWID', 'LEAGUE_ID', 'SEASON'].filter((k) => !env[k]);

@@ -1,0 +1,32 @@
+# Emails a weekly site-traffic recap (visits by day and hour, top tabs, referrers) every Wednesday morning.
+# Sent to league.config.json -> trafficReportTo. Needs the GOATCOUNTER_TOKEN secret plus the Gmail secrets.
+name: Weekly traffic report
+
+on:
+  schedule:
+    - cron: '0 13 * * 3'   # Wednesdays 13:00 UTC = 9am ET (8am after Nov 1)
+  workflow_dispatch:        # "Run workflow" button to send one now
+
+permissions:
+  contents: read
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --silent --no-audit --no-fund
+      - name: Send the report
+        run: node traffic-report.mjs
+        env:
+          GOATCOUNTER_TOKEN: ${{ secrets.GOATCOUNTER_TOKEN }}
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          ESPN_S2: ${{ secrets.ESPN_S2 }}
+          ESPN_SWID: ${{ secrets.ESPN_SWID }}
+          LEAGUE_ID: ${{ vars.LEAGUE_ID }}
+          SEASON: ${{ vars.SEASON }}

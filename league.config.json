@@ -49,5 +49,6 @@
     "deadline": "Thursday 8:00 PM ET after the week's last game",
     "playoffMultiplier": 2
   },
-  "leagueFee": 100
+  "leagueFee": 100,
+  "trafficReportTo": "williamwall2020@gmail.com"
 }

@@ -14,6 +14,8 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8F%88%3C/text%3E%3C/svg%3E">
 <link rel="preload" href="fonts/big-shoulders-display.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/barlow-400.woff2" as="font" type="font/woff2" crossorigin>
+<!-- Visit counts (GoatCounter: no cookies, no personal data). Each tab is counted as its own page by show(). -->
+<script data-goatcounter="https://fantasy.goatcounter.com/count" data-goatcounter-settings='{"no_onload": true}' async src="//gc.zgo.at/count.js"></script>
 <style>
 /* Fonts are served with the site (no Google request blocking the first paint). */
 @font-face { font-family: "Barlow"; font-style: normal; font-weight: 400; font-display: swap; src: url(fonts/barlow-400.woff2) format("woff2"); }
@@ -1186,6 +1188,14 @@ const RENDER = {
   rules: () => renderRules(),
 };
 const rendered = new Set();
+// Count each tab as a page view in GoatCounter (e.g. /ice). The counter script loads async, so wait for it.
+const VIEW_TITLES = Object.fromEntries(VIEWS.map(([id, label]) => [id, label]));
+function trackView(id) {
+  if (!/\.github\.io$/.test(location.hostname)) return;
+  const send = () => window.goatcounter?.count?.({ path: '/' + id, title: VIEW_TITLES[id] || id });
+  if (window.goatcounter?.count) send();
+  else window.addEventListener('load', () => setTimeout(send, 0), { once: true });
+}
 function show(id) {
   if (!VIEWS.some(([v]) => v === id)) id = 'standings';
   currentView = id;
@@ -1203,6 +1213,7 @@ function show(id) {
   if (id === 'standings') drawChartIfNeeded();
   particles.setMode(id === 'ice' ? 'ice' : id === 'history' ? 'gold' : 'field');
   updateBottomNav(id);
+  trackView(id);
   requestAnimationFrame(markScrollers);
 }
 window.addEventListener('hashchange', () => {
