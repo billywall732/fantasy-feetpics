@@ -31,7 +31,7 @@ for (let i = 7; i >= 1; i--) dayKeys.push(etKey(Date.parse(today + 'T12:00:00Z')
 const prevKeys = [];
 for (let i = 14; i >= 8; i--) prevKeys.push(etKey(Date.parse(today + 'T12:00:00Z') - i * 86400e3));
 
-// GoatCounter stores hours in UTC; ask for a UTC window wide enough to cover both Eastern weeks.
+// Ask for a window a day wider than both Eastern weeks, to cover the time-zone shift.
 const utcDay = (key, offset) => new Date(Date.parse(key + 'T00:00:00Z') + offset * 86400e3).toISOString().slice(0, 10);
 async function api(path, params) {
   const url = `${API}${path}?${new URLSearchParams(params)}`;
@@ -42,12 +42,22 @@ async function api(path, params) {
 const span = { start: utcDay(prevKeys[0], -1), end: utcDay(dayKeys.at(-1), 1) };
 
 // ---------- Visits by Eastern day and hour ----------
+// GoatCounter reports days and hours in the account's own time zone (e.g. "US.America/Los_Angeles").
+const me = await api('/me', {});
+const GC_TZ = String(me.user?.settings?.timezone || 'UTC').split('.').pop();
+const tzOffset = (ms, tz) => {
+  const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: tz, year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', hourCycle: 'h23' })
+    .formatToParts(new Date(ms)).map((x) => [x.type, Number(x.value)]));
+  return Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute) - ms;
+};
+// Wall-clock time in the account's zone -> real instant.
+const fromZone = (day, hour) => { const guess = Date.parse(`${day}T${String(hour).padStart(2, '0')}:00:00Z`); return guess - tzOffset(guess, GC_TZ); };
 const total = await api('/stats/total', span);
 const grid = {}; // 'YYYY-MM-DD' (ET) -> [24]
 for (const d of total.stats || []) {
   (d.hourly || []).forEach((n, h) => {
     if (!n) return;
-    const ms = Date.parse(`${d.day}T${String(h).padStart(2, '0')}:00:00Z`);
+    const ms = fromZone(d.day, h);
     const p = etParts(ms);
     const key = `${p.year}-${p.month}-${p.day}`;
     (grid[key] ??= Array(24).fill(0))[Number(p.hour)] += n;
