@@ -74,9 +74,30 @@ const busiestHour = byHour.indexOf(Math.max(...byHour));
 
 // ---------- Top tabs and referrers ----------
 const range = { start: utcDay(dayKeys[0], 0), end: utcDay(dayKeys.at(-1), 1) };
-const hits = await api('/stats/hits', { ...range, limit: 12 }).catch(() => ({ hits: [] }));
+// Per page, the same day/hour breakdown as the site total, converted to Eastern days.
+const hits = await api('/stats/hits', { ...span, limit: 20 }).catch(() => ({ hits: [] }));
 const refs = await api('/stats/toprefs', { ...range, limit: 8 }).catch(() => ({ stats: [] }));
-const pages = (hits.hits || []).map((h) => ({ name: h.title || h.path, path: h.path, count: h.count })).filter((p) => p.count > 0);
+const pageRows = (hits.hits || []).map((h) => {
+  const days = {}, hours = Array(24).fill(0);
+  for (const d of h.stats || []) {
+    if (Array.isArray(d.hourly) && d.hourly.some(Boolean)) {
+      d.hourly.forEach((n, hr) => {
+        if (!n) return;
+        const p = etParts(fromZone(d.day, hr));
+        const key = `${p.year}-${p.month}-${p.day}`;
+        if (!dayKeys.includes(key)) return;
+        days[key] = (days[key] || 0) + n;
+        hours[Number(p.hour)] += n;
+      });
+    } else if (d.daily && dayKeys.includes(d.day)) {
+      days[d.day] = (days[d.day] || 0) + d.daily;
+    }
+  }
+  const perDay = dayKeys.map((k) => days[k] || 0);
+  const peak = hours.some(Boolean) ? hours.indexOf(Math.max(...hours)) : null;
+  return { name: h.path === '/cover' ? 'Cover page' : h.title || h.path, path: h.path, perDay, total: sum(perDay), peak };
+}).filter((p) => p.total > 0).sort((a, b) => b.total - a.total);
+const pages = pageRows.map((p) => ({ name: p.name, count: p.total }));
 const referrers = (refs.stats || []).map((r) => ({ name: r.name || '(direct / unknown)', count: r.count })).filter((r) => r.count > 0);
 
 // ---------- Email ----------
@@ -124,10 +145,24 @@ const html = `<!doctype html><html><body style="margin:0;padding:0;background:#e
       ${Array.from({ length: 24 }, (_, h) => `<tr><td style="font-size:10px;color:#5a685f;text-align:right;padding-right:6px">${hourLabel(h)}</td>${daily.map((d) => cell(d.hours[h])).join('')}<td style="font-size:10px;text-align:right;color:#3a493f">${byHour[h] || ''}</td></tr>`).join('')}
     </table>
 
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-top:18px"><tr>
-      <td valign="top" width="50%" style="padding:0 8px 0 6px"><h3 style="margin:0 0 6px;font-size:16px">Most viewed tabs</h3><table width="100%" cellspacing="0" cellpadding="0">${listRows(pages)}</table></td>
-      <td valign="top" width="50%" style="padding:0 6px 0 8px"><h3 style="margin:0 0 6px;font-size:16px">Where visitors came from</h3><table width="100%" cellspacing="0" cellpadding="0">${listRows(referrers)}</table></td>
-    </tr></table>
+    <h3 style="margin:22px 6px 4px;font-size:16px">Visits by page <span style="font-weight:normal;color:#5a685f;font-size:12px">(each tab of the site, by day; busiest hour in ET)</span></h3>
+    ${pageRows.length ? `<table role="presentation" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;font-size:12px">
+      <tr style="color:#5a685f;font-size:10px;text-transform:uppercase;letter-spacing:1px">
+        <td style="padding:4px 6px;border-bottom:2px solid #dfe8e1">Page</td>
+        ${daily.map((d) => `<td style="padding:4px 2px;border-bottom:2px solid #dfe8e1;text-align:center">${d.label}</td>`).join('')}
+        <td style="padding:4px 6px;border-bottom:2px solid #dfe8e1;text-align:right">Total</td>
+        <td style="padding:4px 6px;border-bottom:2px solid #dfe8e1;text-align:right">Peak</td>
+      </tr>
+      ${pageRows.map((p, i) => `<tr style="background:${i % 2 ? '#ffffff' : '#f7faf8'}">
+        <td style="padding:6px;font-weight:bold;white-space:nowrap">${esc(p.name)}</td>
+        ${p.perDay.map((n) => `<td style="padding:6px 2px;text-align:center;color:${n ? '#0c1810' : '#c4cdc6'}">${n || '·'}</td>`).join('')}
+        <td style="padding:6px;text-align:right;font-weight:bold">${p.total}</td>
+        <td style="padding:6px;text-align:right;color:#3a493f;white-space:nowrap">${p.peak == null ? '—' : hourLabel(p.peak)}</td>
+      </tr>`).join('')}
+    </table>` : '<p style="margin:0 6px;color:#5a685f;font-size:13px">No page views this week.</p>'}
+
+    <h3 style="margin:22px 6px 6px;font-size:16px">Where visitors came from</h3>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="padding:0 6px">${listRows(referrers)}</table>
 
     <div style="margin-top:20px;text-align:center">
       <a href="https://${SITE}.goatcounter.com" style="display:inline-block;background:#0d8a48;color:#fff;text-decoration:none;font-weight:bold;padding:11px 18px;border-radius:999px">Open the full dashboard</a>
@@ -138,7 +173,7 @@ const html = `<!doctype html><html><body style="margin:0;padding:0;background:#e
 
 const text = `Fantasy Feetpics traffic, ${first.date} – ${last.date}\n\nVisits: ${weekTotal}${change == null ? '' : ` (${change >= 0 ? '+' : ''}${change}% vs last week)`}\n`
   + daily.map((d) => `${d.label} ${d.date}: ${d.total}`).join('\n')
-  + `\n\nPeak hour: ${weekTotal ? hourLabel(busiestHour) + ' ET' : '—'}\nTop tabs: ${pages.map((p) => `${p.name} (${p.count})`).join(', ') || '—'}\n\nDashboard: https://${SITE}.goatcounter.com`;
+  + `\n\nPeak hour: ${weekTotal ? hourLabel(busiestHour) + ' ET' : '—'}\nVisits by page: ${pageRows.map((p) => `${p.name} ${p.total}`).join(', ') || '—'}\n\nDashboard: https://${SITE}.goatcounter.com`;
 
 if (DRY) {
   writeFileSync(new URL('data/traffic-report.html', import.meta.url), html);
