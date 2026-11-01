@@ -712,6 +712,31 @@ if (dealer?.trades) {
   });
 }
 
+// Strength of schedule: the combined record of every opponent a team has played (once per game),
+// from ESPN's standings, through the last finished week. Ties count as half a win. Ties between
+// teams are broken by those opponents' points per game; a tie on both shares the award.
+if (doneWeeks.length) {
+  const thru = doneWeeks[doneWeeks.length - 1];
+  const sos = teams.map((t) => {
+    const games = doneWeeks.filter((w) => t.weeks[w]).map((w) => team[t.weeks[w].opp]);
+    const W = games.reduce((s, o) => s + o.w, 0), L = games.reduce((s, o) => s + o.l, 0), T = games.reduce((s, o) => s + o.t, 0);
+    const ppg = games.reduce((s, o) => s + o.pf / Math.max(1, o.w + o.l + o.t), 0) / Math.max(1, games.length);
+    return { id: t.id, W, L, T, pct: W + L + T ? (W + T / 2) / (W + L + T) : 0, ppg: r2(ppg), games: games.length };
+  });
+  const rec = (s) => `${s.W}-${s.L}${s.T ? `-${s.T}` : ''}`;
+  const pct = (p) => p.toFixed(3).replace(/^0/, '');
+  const same = (a, b) => Math.abs(a.pct - b.pct) < 1e-9;
+  for (const [title, dir] of [['Easiest schedule', 1], ['Hardest schedule', -1]]) {
+    const sorted = [...sos].sort((a, b) => dir * (a.pct - b.pct) || dir * (a.ppg - b.ppg));
+    const top = sorted[0];
+    const tiedPct = sorted.slice(1).filter((s) => same(s, top));
+    const shared = tiedPct.filter((s) => s.ppg === top.ppg);
+    const tieNote = shared.length ? `; shared with ${shared.map((s) => team[s.id].name).join(', ')} (same record and points)`
+      : tiedPct.length ? `; tied on win % with ${tiedPct.map((s) => team[s.id].name).join(', ')}, ahead on opponents' points per game (${top.ppg} vs ${tiedPct.map((s) => s.ppg).join(', ')})` : '';
+    awards.push({ title, value: pct(top.pct), teamId: top.id, note: `Opponents ${rec(top)} through week ${thru}, ${top.ppg} points a game${tieNote}` });
+  }
+}
+
 const mostIces = iceTable[0];
 if (mostIces?.earned) {
   const tied = iceTable.filter((r) => r.earned === mostIces.earned);

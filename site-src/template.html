@@ -2036,6 +2036,7 @@ const AWARD_STYLE = {
   'Best player week': ['⭐', 'var(--gold)'], 'Worst starter week': ['🥔', 'var(--bad)'], 'Coach of the year': ['🧠', 'var(--accent)'],
   'Bench Cuck': ['🪑', 'var(--violet)'], 'Luckiest record': ['🍀', 'var(--lime)'], 'Unluckiest record': ['💀', 'var(--bad)'],
   'Waiver wire addict': ['🛒', 'var(--ice)'], 'Used Car Salesman': ['🚗', 'var(--violet)'], 'Fastest ice': ['⚡', 'var(--ice)'], 'Slowest ice': ['🐢', 'var(--ice)'], 'Most ices': ['🧊', 'var(--ice)'],
+  'Easiest schedule': ['🛋️', 'var(--lime)'], 'Hardest schedule': ['🧗', 'var(--coral)'],
 };
 // One line under each award title saying what it measures.
 const AWARD_DESC = {
@@ -2056,6 +2057,8 @@ const AWARD_DESC = {
   'Most ices': 'Most ices earned this season',
   'Waiver wire addict': 'Most waiver and free-agent pickups',
   'Used Car Salesman': 'Most trades completed',
+  'Easiest schedule': "Lowest combined win % of the opponents played so far (ties count as half a win; tie broken by those opponents' points per game)",
+  'Hardest schedule': "Highest combined win % of the opponents played so far (ties count as half a win; tie broken by those opponents' points per game)",
 };
 // Awards sit in rows of matching pairs (best next to worst); anything new lands in a final row.
 const AWARD_ROWS = [
@@ -2065,6 +2068,7 @@ const AWARD_ROWS = [
   ['Player weeks', ['Best player week', 'Worst starter week']],
   ['Lineups', ['Coach of the year', 'Bench Cuck']],
   ['Luck', ['Luckiest record', 'Unluckiest record']],
+  ['Schedule', ['Easiest schedule', 'Hardest schedule']],
   ['Ice', ['Fastest ice', 'Slowest ice', 'Most ices']],
   ['Roster moves', ['Waiver wire addict', 'Used Car Salesman']],
 ];
