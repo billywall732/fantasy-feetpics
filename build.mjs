@@ -1038,6 +1038,8 @@ function brand(html) {
   for (const [from, to] of Object.entries(config.public.awards ?? {})) html = html.replaceAll(`'${from}'`, `'${to}'`);
   return html.replaceAll('__GC_COVER__', '/fantasy-football/').replaceAll('__GC_TAB__', '/fantasy-football/app.html#')
     .replaceAll('https://fantasy.goatcounter.com/count', `https://${config.public.goatcounter}.goatcounter.com/count`)
+    // Off the Wall's own counter script: sends no query strings and only the referrer's domain
+    .replaceAll('//gc.zgo.at/count.js', '/shared/count.js')
     .replace(/ <a href="https:\/\/fantasy\.espn\.com[^"]*"[^>]*>[^<]*<\/a>/g, '');
 }
 const out = (f) => new URL(OUT + f, import.meta.url);
