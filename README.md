@@ -98,6 +98,7 @@ How it differs:
 - **Name:** Fantasy Football (`league.config.json` → `public.name`, `short`, `big` for the cover).
 - **Team names:** one football pun per manager for every season (`public.teams`, keyed like `owners`;
   a new manager needs an entry there or the public build stops).
+- **Award names:** `public.awards` renames awards for the public copy (Bench Cuck → Left on Bench).
 - **Managers:** first names only. The ice sheet still matches on full names; they just never reach the page.
 - **Ice rules:** only the ones the site tracks (lowest score, 0-point starters, playoffs double). No
   missed-deadline doubling and no off-the-field ices.

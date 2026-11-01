@@ -63,6 +63,8 @@ if (PUBLIC) {
 }
 const teamName = (t) => { realTeamNames.add(t.name.trim()); return PUBLIC ? pubTeam[t.primaryOwner].name : t.name.trim(); };
 const leagueName = PUBLIC ? config.public.name : cur.settings.name.trim();
+// Award titles the public copy renames (config public.awards); brand() renames them in the page's code too.
+const awardName = (t) => (PUBLIC && config.public.awards?.[t]) || t;
 
 // ---------- Current season ----------
 const regWeeks = cur.settings.scheduleSettings.matchupPeriodCount;
@@ -479,7 +481,7 @@ const awards = [
   { title: 'Best player week', value: fmt(bestPlayer.pts), teamId: bestPlayer.teamId, note: playerNote(bestPlayer) },
   { title: 'Worst starter week', value: fmt(worstStarter.pts), teamId: worstStarter.teamId, note: playerNote(worstStarter) },
   { title: 'Coach of the year', value: `${coach.efficiency}%`, teamId: coach.id, note: 'Highest share of the best possible lineup actually started' },
-  { title: 'Bench Cuck', value: fmt(benchy.benchLeft), teamId: benchy.id, note: `Points short of the optimal lineup; ${benchy.optimalLosses} losses would have been wins` },
+  { title: awardName('Bench Cuck'), value: fmt(benchy.benchLeft), teamId: benchy.id, note: `Points short of the optimal lineup; ${benchy.optimalLosses} losses would have been wins` },
   { title: 'Luckiest record', value: signed(lucky.luck), teamId: lucky.id, note: `${lucky.w}-${lucky.l} actual vs ${lucky.expectedWins} expected wins` },
   { title: 'Unluckiest record', value: signed(unlucky.luck), teamId: unlucky.id, note: `${unlucky.w}-${unlucky.l} actual vs ${unlucky.expectedWins} expected wins` },
   { title: 'Waiver wire addict', value: String(tinkerer.moves), teamId: tinkerer.id, note: 'Waiver claims and free-agent pickups' },
@@ -1001,6 +1003,7 @@ function brand(html) {
     return html.replaceAll('__GC_COVER__', '/cover').replaceAll('__GC_TAB__', '/')
       .replace('<meta charset="utf-8">', '<meta charset="utf-8">\n<meta name="robots" content="noindex">');
   }
+  for (const [from, to] of Object.entries(config.public.awards ?? {})) html = html.replaceAll(`'${from}'`, `'${to}'`);
   return html.replaceAll('__GC_COVER__', '/fantasy-football/').replaceAll('__GC_TAB__', '/fantasy-football/app.html#')
     .replaceAll('https://fantasy.goatcounter.com/count', `https://${config.public.goatcounter}.goatcounter.com/count`)
     .replace(/ <a href="https:\/\/fantasy\.espn\.com[^"]*"[^>]*>[^<]*<\/a>/g, '');
@@ -1046,7 +1049,7 @@ writeFileSync(out('.nojekyll'), '');
 // The public copy must not name anyone: stop if a full name, ESPN profile name or a real team name
 // (any season) made it onto a page, or the league's real name did.
 if (PUBLIC) {
-  const banned = [...privateNames, ...realTeamNames, cur.settings.name.trim(), 'feetpics'].filter((n) => n.length > 2);
+  const banned = [...privateNames, ...realTeamNames, ...Object.keys(config.public.awards ?? {}), cur.settings.name.trim(), 'feetpics'].filter((n) => n.length > 2);
   const pages = [appHtml, landingHtml, manifest].join('\n').toLowerCase();
   const found = banned.filter((n) => pages.includes(n.toLowerCase()) || pages.includes(JSON.stringify(n).slice(1, -1).toLowerCase()));
   if (found.length) throw new Error(`The public copy still shows: ${found.join(', ')}`);
