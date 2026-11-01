@@ -992,14 +992,17 @@ function minify(html) {
     .join('\n');
 }
 // The league's name goes where the pages say __LEAGUE__ / __SHORT__ / __BIG__. The private site asks
-// search engines to stay away (it's unlisted); the public copy drops the visit counter and the ESPN link.
+// search engines to stay away (it's unlisted). The public copy drops the ESPN link and counts its visits
+// in the portfolio's counter (config public.goatcounter), as /fantasy-football/ and /fantasy-football/app.html#<tab>.
 const names = PUBLIC ? config.public : { name: leagueName, short: 'Feetpics', big: 'FEETPICS' };
 function brand(html) {
   html = html.replaceAll('__LEAGUE__', names.name).replaceAll('__SHORT__', names.short).replaceAll('__BIG__', names.big);
-  if (!PUBLIC) return html.replace('<meta charset="utf-8">', '<meta charset="utf-8">\n<meta name="robots" content="noindex">');
-  return html
-    .replace(/<!--[^>]*GoatCounter[\s\S]*?-->\n?/g, '')
-    .replace(/<script data-goatcounter[^>]*><\/script>\n?/g, '')
+  if (!PUBLIC) {
+    return html.replaceAll('__GC_COVER__', '/cover').replaceAll('__GC_TAB__', '/')
+      .replace('<meta charset="utf-8">', '<meta charset="utf-8">\n<meta name="robots" content="noindex">');
+  }
+  return html.replaceAll('__GC_COVER__', '/fantasy-football/').replaceAll('__GC_TAB__', '/fantasy-football/app.html#')
+    .replaceAll('https://fantasy.goatcounter.com/count', `https://${config.public.goatcounter}.goatcounter.com/count`)
     .replace(/ <a href="https:\/\/fantasy\.espn\.com[^"]*"[^>]*>[^<]*<\/a>/g, '');
 }
 const out = (f) => new URL(OUT + f, import.meta.url);

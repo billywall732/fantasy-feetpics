@@ -1192,7 +1192,7 @@ const rendered = new Set();
 const VIEW_TITLES = Object.fromEntries(VIEWS.map(([id, label]) => [id, label]));
 function trackView(id) {
   if (!/\.github\.io$/.test(location.hostname)) return;
-  const send = () => window.goatcounter?.count?.({ path: '/' + id, title: VIEW_TITLES[id] || id });
+  const send = () => window.goatcounter?.count?.({ path: '__GC_TAB__' + id, title: VIEW_TITLES[id] || id });
   if (window.goatcounter?.count) send();
   else window.addEventListener('load', () => setTimeout(send, 0), { once: true });
 }

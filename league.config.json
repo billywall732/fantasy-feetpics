@@ -53,6 +53,7 @@
     "name": "Fantasy Football",
     "short": "Football",
     "big": "FOOTBALL",
+    "goatcounter": "offthewall",
     "teams": {
       "Jason Liskoff": { "name": "Punt Intended", "abbrev": "PUNT" },
       "Ian Kenny": { "name": "Field Goal Diggers", "abbrev": "FGD" },

@@ -101,8 +101,10 @@ How it differs:
 - **Managers:** first names only. The ice sheet still matches on full names; they just never reach the page.
 - **Ice rules:** only the ones the site tracks (lowest score, 0-point starters, playoffs double). No
   missed-deadline doubling and no off-the-field ices.
-- **No emails, no visit counter, no ESPN league ID or link.** `notify.mjs` only ever reads the league
-  build's `data/ice-events.json`; the public build doesn't write it.
+- **No emails, no ESPN league ID or link.** `notify.mjs` only ever reads the league build's
+  `data/ice-events.json`; the public build doesn't write it.
+- **Visit counts** go to the portfolio's GoatCounter (`public.goatcounter`, offthewall.goatcounter.com) as
+  `/fantasy-football/` and `/fantasy-football/app.html#<tab>`, not to the league's counter or traffic report.
 - **Leak check:** the public build stops with an error if a full name, ESPN profile name, any real team
   name or "Feetpics" ends up on a page.
 
