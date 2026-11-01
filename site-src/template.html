@@ -908,7 +908,7 @@ nav.tabs .tablist a .emoji { display: none; }
         </div>
         <img class="ice-mascot" src="ice-mascot.png" width="385" height="520" alt="" loading="lazy" decoding="async">
       </div>
-      <!-- Public copy only: what the ice emails look like. Samples on the page; nothing is sent from here. -->
+      <!-- What the ice emails look like (both sites). Samples on the page; nothing is sent from here. -->
       <div class="block" id="ice-email-block" hidden>
         <div class="block-head">
           <h2>The ice email</h2>
@@ -1771,7 +1771,7 @@ function liveIce(wk) {
         <div class="panel scroll"><table id="ice-watch"><thead><tr><th>Owner</th><th class="r">Score</th><th class="r">Proj</th><th class="r">To play</th><th>Chance of lowest</th></tr></thead><tbody>${rows}</tbody></table></div></div>
     </div>`;
 }
-// Sample ice emails for the public copy, worded like notify.mjs's real ones and filled in from
+// Sample ice emails (both sites), worded like notify.mjs's real ones and filled in from
 // this season's ices. Display only: no form, no link that sends anything, a placeholder address.
 function renderIceEmailSamples() {
   const I = D.ice, block = $('ice-email-block');
@@ -1858,7 +1858,7 @@ function renderIce() {
   }
   if (latest && latest.deadline <= now) html += head(latest, false) + cards(latest);
   $('ice-due').innerHTML = html || '<p class="note">No weeks played yet.</p>';
-  if (D.public) renderIceEmailSamples();
+  renderIceEmailSamples();
 
   const maxAvg = Math.max(...I.table.map((r) => r.avg || 0));
   const timed = I.table.filter((r) => r.avg != null);
