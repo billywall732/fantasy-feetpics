@@ -103,7 +103,7 @@ the workflow fails and GitHub emails the repo owner; update the two secrets with
 
 `PUBLIC=1 node build.mjs` builds a copy that's safe to show anyone into `site-public/`, from the same data
 and code. Each refresh builds it after the league's site and pushes it to the `gh-pages` branch of
-**billywall732/fantasy-football**, served at https://billywall732.github.io/fantasy-football/.
+**billywall732/fantasy-football**, served at https://offthewall.dev/fantasy-football/.
 
 How it differs:
 - **Name:** Fantasy Football (`league.config.json` → `public.name`, `short`, `big` for the cover).
