@@ -7,6 +7,7 @@ A stats site for the Fantasy Feetpics ESPN league (league 395796507).
 ```
 node fetch.mjs   # pulls the latest data from ESPN into data/
 node build.mjs   # builds site/index.html
+PUBLIC=1 node build.mjs   # builds the public copy in site-public/ (see "Public copy" below)
 ```
 
 Open `site/index.html` in a browser. The page has the data built in; `site/fonts/` holds its fonts.
@@ -82,8 +83,37 @@ Setup:
 4. **Actions → Build and deploy → Run workflow.** The site appears at
    `https://<your-username>.github.io/<repo-name>/`.
 
-Anyone with that link can see the site, including owners' real names. If the ESPN cookies expire,
+Anyone with that link can see the site, including owners' real names. It's kept *unlisted*: nothing
+public links to it and its pages tell search engines not to index them. The public copy below is the one
+to share. If the ESPN cookies expire,
 the workflow fails and GitHub emails the repo owner; update the two secrets with fresh cookies.
+
+## Public copy: Fantasy Football
+
+`PUBLIC=1 node build.mjs` builds a copy that's safe to show anyone into `site-public/`, from the same data
+and code. Each refresh builds it after the league's site and pushes it to the `gh-pages` branch of
+**billywall732/fantasy-football**, served at https://billywall732.github.io/fantasy-football/.
+
+How it differs:
+- **Name:** Fantasy Football (`league.config.json` → `public.name`, `short`, `big` for the cover).
+- **Team names:** one football pun per manager for every season (`public.teams`, keyed like `owners`;
+  a new manager needs an entry there or the public build stops).
+- **Managers:** first names only. The ice sheet still matches on full names; they just never reach the page.
+- **Ice rules:** only the ones the site tracks (lowest score, 0-point starters, playoffs double). No
+  missed-deadline doubling and no off-the-field ices.
+- **No emails, no visit counter, no ESPN league ID or link.** `notify.mjs` only ever reads the league
+  build's `data/ice-events.json`; the public build doesn't write it.
+- **Leak check:** the public build stops with an error if a full name, ESPN profile name, any real team
+  name or "Feetpics" ends up on a page.
+
+Push access is an SSH deploy key that can write to `fantasy-football` and nothing else. Its private half
+is this repo's `PUBLIC_DEPLOY_KEY` secret; without it, refreshes skip the public copy. To replace it:
+```
+ssh-keygen -t ed25519 -N "" -C fantasy-football-deploy -f key
+gh repo deploy-key add key.pub -R billywall732/fantasy-football --allow-write -t "Refresh from fantasy-feetpics"
+gh secret set PUBLIC_DEPLOY_KEY -R billywall732/fantasy-feetpics < key
+rm key key.pub
+```
 
 ## Setup
 

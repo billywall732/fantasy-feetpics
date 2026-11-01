@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Fantasy Feetpics</title>
-<meta name="description" content="The Fantasy Feetpics league: standings, live scores, the ice tracker and league history.">
+<title>__LEAGUE__</title>
+<meta name="description" content="The __LEAGUE__ league: standings, live scores, the ice tracker and league history.">
 <meta name="theme-color" content="#030a06">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -186,7 +186,7 @@ h1 .big .gold {
 <main class="hero">
   <div class="hero-inner">
     <div class="eyebrow" id="eyebrow">2026 Season</div>
-    <h1 aria-label="Fantasy Feetpics">
+    <h1 aria-label="__LEAGUE__">
       <span class="small" aria-hidden="true">Fantasy</span>
       <span class="big shine" aria-hidden="true" id="big"></span>
     </h1>
@@ -200,7 +200,7 @@ h1 .big .gold {
 const LANDING = /*__LANDING__*/null;
 // Each letter drops in turn, then the gold glow ripples across the word left to right.
 // Letters land within about a second; the glint wave then runs left to right, every 4 seconds.
-document.getElementById('big').innerHTML = 'FEETPICS'.split('').map((c, i) =>
+document.getElementById('big').innerHTML = '__BIG__'.split('').map((c, i) =>
   `<span style="--drop:${(0.1 + i * 0.04).toFixed(2)}s">${c}<span class="gold" aria-hidden="true" style="--glint:${(0.9 + i * 0.12).toFixed(2)}s">${c}</span></span>`).join('');
 document.addEventListener('visibilitychange', () => document.documentElement.classList.toggle('paused', document.hidden));
 // Camera flashes scattered across the stands.

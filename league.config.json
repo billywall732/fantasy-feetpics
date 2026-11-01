@@ -49,6 +49,22 @@
     "deadline": "Thursday 8:00 PM ET after the week's last game",
     "playoffMultiplier": 2
   },
+  "public": {
+    "name": "Fantasy Football",
+    "short": "Football",
+    "big": "FOOTBALL",
+    "teams": {
+      "Jason Liskoff": { "name": "Punt Intended", "abbrev": "PUNT" },
+      "Ian Kenny": { "name": "Field Goal Diggers", "abbrev": "FGD" },
+      "Alexander Carter": { "name": "The Fumble Bees", "abbrev": "BEES" },
+      "Bryan Wall": { "name": "End Zone Rangers", "abbrev": "EZR" },
+      "Hingle McCringleberry": { "name": "Hail Mary Poppins", "abbrev": "HMP" },
+      "Billy Wall": { "name": "Sack to the Future", "abbrev": "SACK" },
+      "James Waring": { "name": "Blitz Please", "abbrev": "BLTZ" },
+      "Ben Wick": { "name": "Tackle Box", "abbrev": "TKL" },
+      "Anthony Confalone": { "name": "Huddle Muddle", "abbrev": "HUD" }
+    }
+  },
   "leagueFee": 100,
   "trafficReportTo": "williamwall2020@gmail.com"
 }

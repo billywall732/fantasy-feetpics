@@ -27,6 +27,28 @@ publish() {
       commit -q -m "Refresh $(date -u +%Y-%m-%dT%H:%MZ)" &&
     git push -q -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" gh-pages
   ) && echo "Published at $(date -u +%H:%M:%S) UTC"
+  publish_public
+}
+
+# The public copy ("Fantasy Football": pun team names, first names, no emails) goes to the gh-pages
+# branch of billywall732/fantasy-football. Its own build and push; a failure here never holds up the
+# league's site or its ice emails above.
+publish_public() {
+  if [ -z "${PUBLIC_DEPLOY_KEY:-}" ]; then echo "No PUBLIC_DEPLOY_KEY: skipping the public copy"; return 0; fi
+  if ! PUBLIC=1 node build.mjs; then echo "::warning::Public copy failed to build"; return 1; fi
+  local key=/tmp/public_deploy_key
+  printf '%s\n' "$PUBLIC_DEPLOY_KEY" > "$key" && chmod 600 "$key"
+  rm -rf /tmp/pub-public && cp -r site-public /tmp/pub-public
+  (
+    cd /tmp/pub-public &&
+    git init -q -b gh-pages &&
+    git add -A &&
+    git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+      commit -q -m "Refresh $(date -u +%Y-%m-%dT%H:%MZ)" &&
+    GIT_SSH_COMMAND="ssh -i $key -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new" \
+      git push -q -f git@github.com:billywall732/fantasy-football.git gh-pages
+  ) && echo "Published the public copy at $(date -u +%H:%M:%S) UTC" || echo "::warning::Public copy failed to publish"
+  rm -f "$key"
 }
 
 publish

@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Fantasy Feetpics</title>
-<meta name="description" content="Standings, matchups, ice tracker, power rankings, draft and history for the Fantasy Feetpics league.">
+<title>__LEAGUE__</title>
+<meta name="description" content="Standings, matchups, ice tracker, power rankings, draft and history for the __LEAGUE__ league.">
 <meta name="theme-color" content="#04110b">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Feetpics">
+<meta name="apple-mobile-web-app-title" content="__SHORT__">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8F%88%3C/text%3E%3C/svg%3E">
 <link rel="preload" href="fonts/big-shoulders-display.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/barlow-400.woff2" as="font" type="font/woff2" crossorigin>
@@ -2025,10 +2025,10 @@ function renderRules() {
       <li><b>Lowest score of the week.</b> The team with the week's lowest score owes one ice. If teams tie for lowest, each owes one.</li>
       <li><b>Zero-point starters.</b> Every player in your starting lineup who finishes the week with 0 or fewer points earns you one ice.</li>
       <li><b>Deadline: Thursday night kickoff.</b> Ices must be finished before kickoff of the following Thursday night game.</li>
-      <li><b>Miss the deadline, it doubles.</b> An ice not done by Thursday night kickoff counts ×${miss}.</li>
+      ${miss ? `<li><b>Miss the deadline, it doubles.</b> An ice not done by Thursday night kickoff counts ×${miss}.</li>` : ''}
       <li><b>Playoffs count double.</b> Every ice earned in a playoff game counts ×${m}.</li>
     </ol>
-    <h4 class="sub-rules">🚨 Off-the-field ices</h4>
+    ${D.public ? `<p class="note">The <a href="#ice">Ice tab</a> works out every ice automatically from ESPN scores.</p>` : `<h4 class="sub-rules">🚨 Off-the-field ices</h4>
     <p class="lede">You also owe an ice if a player on your roster:</p>
     <ul class="off-field">
       <li><i class="emoji">🚔</i> Is arrested or detained <span class="note">(tickets don't count)</span></li>
@@ -2036,7 +2036,7 @@ function renderRules() {
       <li><i class="emoji">👶</i> Has a new baby momma</li>
       <li><i class="emoji">🏳️‍🌈</i> Comes out as gay</li>
     </ul>
-    <p class="note">The <a href="#ice">Ice tab</a> works out game ices automatically and emails whoever owes. Off-the-field ices aren't tracked automatically; log them in the league's ice sheet and they'll appear in the Ice tab's ice log with the reason given.</p>
+    <p class="note">The <a href="#ice">Ice tab</a> works out game ices automatically and emails whoever owes. Off-the-field ices aren't tracked automatically; log them in the league's ice sheet and they'll appear in the Ice tab's ice log with the reason given.</p>`}
   </div>`;
   $('rules-sections').innerHTML = R.sections.map((s) => `<div class="panel rules-card"><h3><i class="emoji">${s.icon}</i> ${esc(s.title)}</h3>${list(s.rows)}</div>`).join('');
   const SCORE_ICON = { Passing: '🎯', Rushing: '🏃', Receiving: '🙌', Kicking: '🦵', 'Defense & special teams': '🛡️', Miscellaneous: '✨', Other: '📋' };
@@ -2159,7 +2159,7 @@ function buildHeadlines() {
   $('ticker').innerHTML = items + (reduceMotion ? '' : items.replace(/<span>/g, '<span aria-hidden="true">'));
 }
 
-$('footer').innerHTML = `<span>🏈 Data from ESPN fantasy league ${esc(L.leagueId)} · Standings as of ${fmtDate(L.updated)}</span><span>Page built ${fmtDate(L.built)}</span>`;
+$('footer').innerHTML = `<span>🏈 Data from ESPN fantasy league${L.leagueId ? ` ${esc(L.leagueId)}` : ''} · Standings as of ${fmtDate(L.updated)}</span><span>Page built ${fmtDate(L.built)}</span>`;
 
 /* ---------- Stay current ----------
    Home-screen apps and background tabs keep the page they first loaded. Whenever the site is opened or

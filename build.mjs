@@ -1,10 +1,14 @@
 // Turns data/*.json into site/index.html (data built in) plus site/fonts/.
 // Usage: node build.mjs   (run fetch.mjs first)
+//        PUBLIC=1 node build.mjs   the public copy ("Fantasy Football") in site-public/: pun team names,
+//        first names only, no untracked ice rules, no tracking (league.config.json -> public)
 import { readFileSync, writeFileSync, mkdirSync, existsSync, cpSync } from 'node:fs';
 import { env } from './env.mjs';
 
 const read = (f) => JSON.parse(readFileSync(new URL(f, import.meta.url), 'utf8'));
 const SEASON = Number(env.SEASON);
+const PUBLIC = process.env.PUBLIC === '1';
+const OUT = PUBLIC ? 'site-public/' : 'site/';
 
 const cur = read(`data/season-${SEASON}.json`);
 const box = read(`data/boxscores-${SEASON}.json`);
@@ -42,6 +46,23 @@ for (const o of Object.values(owners)) {
   const c = config.owners[o.name];
   if (c) Object.assign(o, { espnName: o.name, name: c.name, short: c.short, aliases: c.aliases || [] });
 }
+// Every name an owner goes by, for matching the ice sheet. Kept here, off the page, so the public
+// copy can still match "Billy Wall" in the sheet while showing only "Billy".
+const ownerNames = Object.fromEntries(Object.values(owners).map((o) => [o.id, [o.name, o.espnName, o.short, o.handle, ...(o.aliases || [])].filter(Boolean)]));
+// Names the public copy must never show (first names on their own are fine).
+const privateNames = new Set(Object.values(owners).flatMap((o) => [o.handle, ...[o.name, o.espnName, ...(o.aliases || [])].filter((n) => n?.includes(' '))]).filter(Boolean));
+const realTeamNames = new Set();
+const pubTeam = {}; // ownerId -> { name, abbrev }, public copy only
+if (PUBLIC) {
+  for (const o of Object.values(owners)) {
+    const p = config.public.teams[o.espnName ?? o.name];
+    if (!p) throw new Error(`No public team name for ${o.espnName ?? o.name} in league.config.json -> public.teams.`);
+    pubTeam[o.id] = p;
+    owners[o.id] = { id: o.id, name: o.short ?? o.name.split(' ')[0], short: o.short ?? o.name.split(' ')[0] };
+  }
+}
+const teamName = (t) => { realTeamNames.add(t.name.trim()); return PUBLIC ? pubTeam[t.primaryOwner].name : t.name.trim(); };
+const leagueName = PUBLIC ? config.public.name : cur.settings.name.trim();
 
 // ---------- Current season ----------
 const regWeeks = cur.settings.scheduleSettings.matchupPeriodCount;
@@ -52,8 +73,8 @@ const doneWeeks = [...new Set(doneMatchups.map((m) => m.matchupPeriodId))].sort(
 
 const teams = cur.teams.map((t) => ({
   id: t.id,
-  name: t.name.trim(),
-  abbrev: t.abbrev,
+  name: teamName(t),
+  abbrev: PUBLIC ? pubTeam[t.primaryOwner].abbrev : t.abbrev,
   ownerId: t.primaryOwner,
   owner: owners[t.primaryOwner]?.name ?? '',
   seed: t.playoffSeed,
@@ -607,7 +628,8 @@ for (const t of teams) for (const w of doneWeeks) t.weeks[w].ices = iceWeeks.fin
       if (r.kickoff && NOW >= r.kickoff + 4.5 * 3600e3) dud(r.teamId, { player: r.name, pos: r.pos, pro: r.pro, pts: r.pts });
     }
   }
-  writeFileSync(new URL('data/ice-events.json', import.meta.url), JSON.stringify([...events.values()], null, 2));
+  // Only the private build feeds notify.mjs; the public copy never sends email.
+  if (!PUBLIC) writeFileSync(new URL('data/ice-events.json', import.meta.url), JSON.stringify([...events.values()], null, 2));
 }
 function f2(n) { return Number(n).toFixed(2); }
 
@@ -632,7 +654,7 @@ function parseCsv(text) {
   return rows.filter((r) => r.some((x) => x.trim()));
 }
 const nameToOwner = new Map();
-for (const o of Object.values(owners)) for (const n of [o.name, o.espnName, o.short, ...(o.aliases || [])].filter(Boolean)) nameToOwner.set(n.toLowerCase(), o.id);
+for (const [id, names] of Object.entries(ownerNames)) for (const n of names) if (!nameToOwner.has(n.toLowerCase())) nameToOwner.set(n.toLowerCase(), id);
 const iceLog = [];
 const unmatched = new Set();
 if (existsSync(new URL('data/ice-log.csv', import.meta.url))) {
@@ -704,7 +726,7 @@ for (const year of [...(cur.status.previousSeasons || []), SEASON].sort()) {
   const s = year === SEASON ? cur : read(`data/season-${year}.json`);
   const reg = s.settings.scheduleSettings.matchupPeriodCount;
   const done = s.schedule.filter((m) => m.winner !== 'UNDECIDED' && m.away);
-  const tName = Object.fromEntries(s.teams.map((t) => [t.id, t.name.trim()]));
+  const tName = Object.fromEntries(s.teams.map((t) => [t.id, teamName(t)]));
   const tOwner = Object.fromEntries(s.teams.map((t) => [t.id, t.primaryOwner]));
   for (const m of done.filter((m) => m.matchupPeriodId <= reg)) {
     allGames.push({
@@ -726,7 +748,7 @@ for (const year of [...(cur.status.previousSeasons || []), SEASON].sort()) {
     complete,
     teams: s.teams
       .map((t) => ({
-        name: t.name.trim(),
+        name: teamName(t),
         ownerId: t.primaryOwner,
         owner: owners[t.primaryOwner]?.name,
         w: t.record.overall.wins,
@@ -736,8 +758,8 @@ for (const year of [...(cur.status.previousSeasons || []), SEASON].sort()) {
         final: complete ? t.rankCalculatedFinal : null,
       }))
       .sort((a, b) => (complete ? a.final - b.final : a.seed - b.seed)),
-    champion: champ && { name: champ.name.trim(), owner: owners[champ.primaryOwner]?.name },
-    runnerUp: runner && { name: runner.name.trim(), owner: owners[runner.primaryOwner]?.name },
+    champion: champ && { name: teamName(champ), owner: owners[champ.primaryOwner]?.name },
+    runnerUp: runner && { name: teamName(runner), owner: owners[runner.primaryOwner]?.name },
     finalScore: final && {
       champ: r2(final.home.teamId === champ.id ? final.home.totalPoints : final.away.totalPoints),
       runner: r2(final.home.teamId === champ.id ? final.away.totalPoints : final.home.totalPoints),
@@ -891,7 +913,7 @@ const rules = (() => {
   return {
     sections: [
       { title: 'Basics', icon: '🏈', rows: [
-        { label: 'League name', value: st.name.trim() }, { label: 'Teams', value: String(st.size) },
+        { label: 'League name', value: leagueName }, { label: 'Teams', value: String(st.size) },
         { label: 'Scoring type', value: st.scoringSettings.scoringType === 'H2H_POINTS' ? 'Head-to-head points' : titleCase(st.scoringSettings.scoringType) },
         { label: 'Receptions', value: (() => { const r = st.scoringSettings.scoringItems.find((i) => i.statId === 53)?.points ?? 0; return r === 1 ? 'Full PPR (1 pt each)' : r ? `${r} pts each` : 'Standard (none)'; })() },
         { label: 'Ties', value: st.scoringSettings.matchupTieRule === 'NONE' ? 'Ties stand' : titleCase(st.scoringSettings.matchupTieRule) },
@@ -931,13 +953,15 @@ const rules = (() => {
       ] },
     ],
     scoring,
-    ice: { multiplier, missedMultiplier: 2 },
+    // The missed-deadline doubling is a stated rule the site doesn't track, so the public copy leaves it out.
+    ice: PUBLIC ? { multiplier } : { multiplier, missedMultiplier: 2 },
   };
 })();
 
 // ---------- Output ----------
 const model = {
-  league: { name: cur.settings.name.trim(), season: SEASON, currentWeek, lastWeek, regWeeks, playoffTeams, size: teams.length, trades, updated: cur.status.standingsUpdateDate, built: Date.now(), leagueId: env.LEAGUE_ID, weekStart: weekSpans[currentWeek]?.first ?? null, weekEnd: weekSpans[currentWeek]?.last ?? null },
+  public: PUBLIC,
+  league: { name: leagueName, season: SEASON, currentWeek, lastWeek, regWeeks, playoffTeams, size: teams.length, trades, updated: cur.status.standingsUpdateDate, built: Date.now(), leagueId: PUBLIC ? null : env.LEAGUE_ID, weekStart: weekSpans[currentWeek]?.first ?? null, weekEnd: weekSpans[currentWeek]?.last ?? null },
   teams: teams.sort((a, b) => a.seed - b.seed),
   matchups,
   upcoming,
@@ -967,15 +991,29 @@ function minify(html) {
     .filter((l) => l && !l.startsWith('// '))
     .join('\n');
 }
-const template = minify(readFileSync(new URL('site-src/template.html', import.meta.url), 'utf8'));
+// The league's name goes where the pages say __LEAGUE__ / __SHORT__ / __BIG__. The private site asks
+// search engines to stay away (it's unlisted); the public copy drops the visit counter and the ESPN link.
+const names = PUBLIC ? config.public : { name: leagueName, short: 'Feetpics', big: 'FEETPICS' };
+function brand(html) {
+  html = html.replaceAll('__LEAGUE__', names.name).replaceAll('__SHORT__', names.short).replaceAll('__BIG__', names.big);
+  if (!PUBLIC) return html.replace('<meta charset="utf-8">', '<meta charset="utf-8">\n<meta name="robots" content="noindex">');
+  return html
+    .replace(/<!--[^>]*GoatCounter[\s\S]*?-->\n?/g, '')
+    .replace(/<script data-goatcounter[^>]*><\/script>\n?/g, '')
+    .replace(/ <a href="https:\/\/fantasy\.espn\.com[^"]*"[^>]*>[^<]*<\/a>/g, '');
+}
+const out = (f) => new URL(OUT + f, import.meta.url);
+const template = brand(minify(readFileSync(new URL('site-src/template.html', import.meta.url), 'utf8')));
 if (!template.includes('/*__DATA__*/null')) throw new Error('Data placeholder missing from the template.');
 // ESPN account IDs (one of them doubles as the SWID login cookie) never go on the page: swap each for a short label.
 let json = JSON.stringify(model).replace(/</g, '\\u003c');
 Object.keys(owners).forEach((id, i) => { json = json.split(id).join(`o${i + 1}`); });
 if (/\{[0-9A-F]{8}-[0-9A-F]{4}-/i.test(json)) throw new Error('An ESPN account ID is still in the page data.');
-mkdirSync(new URL('site/', import.meta.url), { recursive: true });
+mkdirSync(out(''), { recursive: true });
 // The full site is app.html; index.html is the landing page in front of it.
-writeFileSync(new URL('site/app.html', import.meta.url), template.replace('/*__DATA__*/null', json));
+const appHtml = template.replace('/*__DATA__*/null', json);
+writeFileSync(out('app.html'), appHtml);
+let landingHtml;
 {
   const { latest, pending } = (() => {
     const finals = iceWeeks.filter((w) => w.final);
@@ -990,15 +1028,26 @@ writeFileSync(new URL('site/app.html', import.meta.url), template.replace('/*__D
     leader: leader ? `${leader.name} ${leader.w}-${leader.l}` : null,
     ice: due?.deadline ? `Week ${due.week} ices due ${short(due.deadline)}` : null,
   };
-  const landingHtml = minify(readFileSync(new URL('site-src/landing.html', import.meta.url), 'utf8'))
+  landingHtml = brand(minify(readFileSync(new URL('site-src/landing.html', import.meta.url), 'utf8')))
     .replace('/*__LANDING__*/null', JSON.stringify(landing).replace(/</g, '\\u003c'));
-  writeFileSync(new URL('site/index.html', import.meta.url), landingHtml);
+  writeFileSync(out('index.html'), landingHtml);
 }
-cpSync(new URL('site-src/fonts/', import.meta.url), new URL('site/fonts/', import.meta.url), { recursive: true });
-cpSync(new URL('site-src/static/', import.meta.url), new URL('site/', import.meta.url), { recursive: true });
+cpSync(new URL('site-src/fonts/', import.meta.url), out('fonts/'), { recursive: true });
+cpSync(new URL('site-src/static/', import.meta.url), out(''), { recursive: true });
+const manifest = brand(readFileSync(new URL('site-src/static/manifest.webmanifest', import.meta.url), 'utf8'));
+writeFileSync(out('manifest.webmanifest'), manifest);
 // Tiny file the page polls (cache-busted) to know when newer data has been published.
-writeFileSync(new URL('site/version.json', import.meta.url), JSON.stringify({ built: model.league.built }));
-writeFileSync(new URL('site/.nojekyll', import.meta.url), '');
+writeFileSync(out('version.json'), JSON.stringify({ built: model.league.built }));
+writeFileSync(out('.nojekyll'), '');
+
+// The public copy must not name anyone: stop if a full name, ESPN profile name or a real team name
+// (any season) made it onto a page, or the league's real name did.
+if (PUBLIC) {
+  const banned = [...privateNames, ...realTeamNames, cur.settings.name.trim(), 'feetpics'].filter((n) => n.length > 2);
+  const pages = [appHtml, landingHtml, manifest].join('\n').toLowerCase();
+  const found = banned.filter((n) => pages.includes(n.toLowerCase()) || pages.includes(JSON.stringify(n).slice(1, -1).toLowerCase()));
+  if (found.length) throw new Error(`The public copy still shows: ${found.join(', ')}`);
+}
 
 // Copy for the claude.ai artifact preview, whose host supplies the doctype, <head> and <body> itself.
 const page = template
@@ -1007,6 +1056,8 @@ const page = template
   .replace('</style>\n</head>\n<body>\n', '</style>\n')
   .replace(/\n<\/body>\n<\/html>\n?$/, '\n')
   .replace('/*__DATA__*/null', json);
-mkdirSync(new URL('.artifact/', import.meta.url), { recursive: true });
-writeFileSync(new URL('.artifact/page.html', import.meta.url), page);
-console.log(`Built site/index.html (${(json.length / 1024).toFixed(0)} KB of data, through week ${lastWeek}).`);
+if (!PUBLIC) {
+  mkdirSync(new URL('.artifact/', import.meta.url), { recursive: true });
+  writeFileSync(new URL('.artifact/page.html', import.meta.url), page);
+}
+console.log(`Built ${OUT}index.html (${(json.length / 1024).toFixed(0)} KB of data, through week ${lastWeek}).`);

@@ -53,3 +53,5 @@ jobs:
           SEASON: ${{ vars.SEASON }}
           ICE_SHEET_ID: ${{ vars.ICE_SHEET_ID }}
           ICE_SHEET_TAB: ${{ vars.ICE_SHEET_TAB }}
+          # Push access to billywall732/fantasy-football only, for the public copy (see README).
+          PUBLIC_DEPLOY_KEY: ${{ secrets.PUBLIC_DEPLOY_KEY }}

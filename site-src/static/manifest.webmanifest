@@ -1,6 +1,6 @@
 {
-  "name": "Fantasy Feetpics",
-  "short_name": "Feetpics",
+  "name": "__LEAGUE__",
+  "short_name": "__SHORT__",
   "start_url": "app.html",
   "scope": "./",
   "display": "standalone",
