@@ -147,7 +147,8 @@ button { font: inherit; color: inherit; }
 .masthead .fresh { cursor: pointer; font-family: inherit; }
 .masthead .fresh:hover { border-color: rgb(255 255 255 / .35); }
 .masthead .fresh:disabled { cursor: default; }
-.masthead .refresh-now { background: rgb(255 255 255 / .16); }
+.masthead .status { display: inline-flex; flex-wrap: nowrap; gap: 6px 8px; }
+.masthead .refresh-now { background: rgb(255 255 255 / .2); border-color: rgb(255 255 255 / .3); color: var(--hero-ink); }
 .masthead .refresh-now:disabled { opacity: .6; }
 .masthead .meta .refresh-msg { flex-basis: 100%; font-size: 13px; font-weight: 600; background: none; border: 0; padding: 0; white-space: normal; }
 .masthead .refresh-msg[hidden] { display: none; }
@@ -446,6 +447,12 @@ td.titles .no-title { color: var(--muted); font-family: var(--font-display); fon
 .email-main p { margin: 0; }
 .email-main .note { color: #3a493f; }
 .email-hi { font-size: 17px; }
+.email-pic { display: block; width: 100%; max-width: 480px; height: auto; border-radius: 10px; margin: 0 auto 6px; }
+.samples-toggle { justify-self: start; margin-bottom: 12px; padding: 8px 16px; border-radius: 999px; border: 2px dashed #c98a12; background: transparent; color: var(--ink); font-family: inherit; font-size: 14px; font-weight: 700; line-height: 1.2; cursor: pointer; }
+.samples-toggle:hover { background: color-mix(in srgb, #c98a12 12%, transparent); }
+.samples-toggle:focus-visible { outline: 3px solid #c98a12; outline-offset: 2px; }
+.email-samples[hidden] { display: none; }
+.rules-link { display: inline-block; margin-top: 6px; font-weight: 700; color: var(--accent); }
 .email-penalty { background: #f4f8f4; border-radius: 8px; padding: 8px 10px; }
 .email-due { background: #e8f4ff; border-left: 4px solid #1b7fe8; border-radius: 8px; padding: 10px 12px; }
 .email-btn { justify-self: start; background: #0d8a48; color: #fff; font-weight: bold; padding: 10px 16px; border-radius: 999px; font-size: 14px; cursor: default; opacity: .85; }
@@ -601,6 +608,7 @@ nav.tabs .tablist a .emoji { display: none; }
   .masthead h1 { font-size: 10.6vw; white-space: nowrap; grid-column: 2; margin-top: 2px; }
   .masthead .meta { grid-column: 1 / -1; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
   .masthead .meta span, .masthead .fresh { font-size: 12px; white-space: nowrap; padding: 3px 9px; }
+  .masthead .status { gap: 6px; }
   /* The four stat cards only on Standings, so other tabs start closer to their content */
   :root:not([data-view="standings"]) .facts { display: none; }
   .m-only-block { display: block; }
@@ -894,6 +902,7 @@ nav.tabs .tablist a .emoji { display: none; }
           <div class="block-head">
             <h2>Ices due</h2>
             <p>One ice for the week's lowest team score and one for every starter at 0 or fewer points. Doubled in the playoffs. Due at the next Thursday night kickoff; a missed deadline doubles it.</p>
+            <a class="rules-link" href="#rules">📜 Read the ice rules <span aria-hidden="true">→</span></a>
           </div>
           <div id="ice-due"></div>
         </div>
@@ -903,9 +912,10 @@ nav.tabs .tablist a .emoji { display: none; }
       <div class="block" id="ice-email-block" hidden>
         <div class="block-head">
           <h2>The ice email</h2>
-          <p>When an ice locks in, the league's site emails whoever owes. These are samples built from this season's results. Nothing on this page sends email.</p>
+          <p>When an ice locks in, the league's site emails whoever owes. The samples are built from this season's results. Nothing on this page sends email.</p>
         </div>
-        <div class="email-samples" id="ice-email-samples"></div>
+        <button type="button" class="samples-toggle" id="ice-email-toggle" aria-expanded="false" aria-controls="ice-email-samples">Show sample ice emails</button>
+        <div class="email-samples" id="ice-email-samples" hidden></div>
       </div>
       <div class="block">
         <div class="block-head">
@@ -1178,11 +1188,11 @@ applyEffects();
 $('league-name').textContent = L.name;
 $('eyebrow').textContent = `${L.season} season · ${L.size}-team PPR`;
 const playoffStart = L.regWeeks + 1;
+// Two facts, then "Updated X ago" and Refresh now kept together so they wrap as one
 $('meta').innerHTML = [
   `🏈 Week ${L.currentWeek} of ${L.regWeeks}`,
-  `🎟️ Top ${L.playoffTeams} make the playoffs`,
   `🗓️ Playoffs start week ${playoffStart}`,
-].map((s) => `<span>${esc(s)}</span>`).join('') + '<button type="button" class="fresh" id="fresh" title="Check for newer scores"></button><button type="button" class="fresh refresh-now" id="refreshNow" hidden>⚡ Refresh now</button><span class="refresh-msg" id="refreshMsg" role="status" aria-live="polite" hidden></span>';
+].map((s) => `<span>${esc(s)}</span>`).join('') + '<div class="status"><button type="button" class="fresh" id="fresh" title="Check for newer scores"></button><button type="button" class="fresh refresh-now" id="refreshNow" hidden>⚡ Refresh now</button></div><span class="refresh-msg" id="refreshMsg" role="status" aria-live="polite" hidden></span>';
 // How fresh the data is, refreshed every minute.
 function ago(ms) {
   const m = Math.round((Date.now() - ms) / 60000);
@@ -1786,6 +1796,7 @@ function renderIceEmailSamples() {
       <div class="email-body">
         <div class="email-top"><span>${esc(L.name.toUpperCase())} · WEEK ${wk.week}</span><b>🧊 ICE ALERT</b></div>
         <div class="email-main">
+          ${(D.iceImages?.[kind] || [])[0] ? `<img class="email-pic" src="${esc(D.iceImages[kind][0])}" alt="" width="480" height="720" loading="lazy" decoding="async">` : ''}
           <p class="email-hi"><b>${esc(first)}, you owe ${count}.</b></p>
           <p>${esc(why)}</p>
           <p class="note">Team: ${esc(T[o.teamId].name)}${wk.playoff ? ' · Playoffs: ices count double' : ''}</p>
@@ -1798,8 +1809,18 @@ function renderIceEmailSamples() {
   };
   const lowest = found('lowest'), dud = found('dud');
   if (!lowest && !dud) { block.hidden = true; return; }
-  $('ice-email-samples').innerHTML = [lowest && mail('lowest', lowest), dud && mail('dud', dud)].filter(Boolean).join('');
   block.hidden = false;
+  // Collapsed on every visit. The samples (and their pictures) are only built when first opened.
+  const btn = $('ice-email-toggle'), box = $('ice-email-samples');
+  if (btn.dataset.wired) return;
+  btn.dataset.wired = '1';
+  btn.addEventListener('click', () => {
+    const open = btn.getAttribute('aria-expanded') !== 'true';
+    if (open && !box.childElementCount) box.innerHTML = [lowest && mail('lowest', lowest), dud && mail('dud', dud)].filter(Boolean).join('');
+    box.hidden = !open;
+    btn.setAttribute('aria-expanded', String(open));
+    btn.textContent = open ? 'Hide sample ice emails' : 'Show sample ice emails';
+  });
 }
 
 function renderIce() {

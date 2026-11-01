@@ -2,7 +2,7 @@
 // Usage: node build.mjs   (run fetch.mjs first)
 //        PUBLIC=1 node build.mjs   the public copy ("Fantasy Football") in site-public/: pun team names,
 //        first names only, no untracked ice rules, no tracking (league.config.json -> public)
-import { readFileSync, writeFileSync, mkdirSync, existsSync, cpSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, cpSync, readdirSync } from 'node:fs';
 import { env } from './env.mjs';
 
 const read = (f) => JSON.parse(readFileSync(new URL(f, import.meta.url), 'utf8'));
@@ -985,9 +985,15 @@ const rules = (() => {
   };
 })();
 
+// Ice email pictures (notify-images/<kind>/) are published with each site as ice-images/<kind>/, so
+// real emails link to them at a full https address (notify.mjs) and the on-site samples can show them.
+const ICE_IMAGE_KINDS = ['lowest', 'dud'];
+const iceImageFiles = (kind) => { const dir = new URL(`notify-images/${kind}/`, import.meta.url); return existsSync(dir) ? readdirSync(dir).filter((f) => /\.(jpe?g|png|gif|webp)$/i.test(f)).sort() : []; };
+
 // ---------- Output ----------
 const model = {
   public: PUBLIC,
+  iceImages: Object.fromEntries(ICE_IMAGE_KINDS.map((k) => [k, iceImageFiles(k).map((f) => `ice-images/${k}/${encodeURIComponent(f)}`)])),
   league: { name: leagueName, season: SEASON, currentWeek, lastWeek, regWeeks, playoffTeams, size: teams.length, trades, updated: cur.status.standingsUpdateDate, built: Date.now(), leagueId: PUBLIC ? null : env.LEAGUE_ID, // The public copy can have its own refresh address (one without the league's name in it)
     refreshUrl: (PUBLIC ? config.public.refreshUrl ?? config.refreshUrl : config.refreshUrl) || '', weekStart: weekSpans[currentWeek]?.first ?? null, weekEnd: weekSpans[currentWeek]?.last ?? null },
   teams: teams.sort((a, b) => a.seed - b.seed),
@@ -1066,6 +1072,10 @@ let landingHtml;
 }
 cpSync(new URL('site-src/fonts/', import.meta.url), out('fonts/'), { recursive: true });
 cpSync(new URL('site-src/static/', import.meta.url), out(''), { recursive: true });
+for (const k of ICE_IMAGE_KINDS) for (const f of iceImageFiles(k)) {
+  mkdirSync(out(`ice-images/${k}/`), { recursive: true });
+  cpSync(new URL(`notify-images/${k}/${f}`, import.meta.url), out(`ice-images/${k}/${f}`));
+}
 const manifest = brand(readFileSync(new URL('site-src/static/manifest.webmanifest', import.meta.url), 'utf8'));
 writeFileSync(out('manifest.webmanifest'), manifest);
 // Tiny file the page polls (cache-busted) to know when newer data has been published.

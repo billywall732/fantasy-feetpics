@@ -9,7 +9,6 @@
 // Reads data/ice-events.json (written by build.mjs) and writes site/notified.json, which is published
 // with the site so the next refresh knows what has already gone out.
 import { readFileSync, writeFileSync, existsSync, readdirSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
 import nodemailer from 'nodemailer';
 import { env } from './env.mjs';
 
@@ -19,17 +18,20 @@ const value = (name) => (args.includes(name) ? args[args.indexOf(name) + 1] : nu
 const DRY = flag('--dry-run');
 const TEST_TO = value('--test');
 const STATE = value('--state');
-const SITE_URL = 'https://offthewall.dev/fantasy-feetpics/app.html';
+const SITE_ROOT = 'https://offthewall.dev/fantasy-feetpics/';
+const SITE_URL = `${SITE_ROOT}app.html`;
 const here = (p) => new URL(p, import.meta.url);
 
 // ---------- Pictures: a random one from notify-images/<kind>/ ----------
+// build.mjs publishes these with the site as ice-images/<kind>/, so the email links to the picture at a
+// full https address instead of attaching it (some email apps hide attached inline pictures).
 function pickImage(kind) {
   const dir = here(`notify-images/${kind}/`);
   if (!existsSync(dir)) return null;
   const files = readdirSync(dir).filter((f) => /\.(jpe?g|png|gif|webp)$/i.test(f));
   if (!files.length) return null;
   const file = files[Math.floor(Math.random() * files.length)];
-  return { filename: file, path: fileURLToPath(new URL(file, dir)), cid: 'ice-picture' };
+  return { url: `${SITE_ROOT}ice-images/${kind}/${encodeURIComponent(file)}` };
 }
 
 // ---------- Message ----------
@@ -52,7 +54,7 @@ function compose(ev) {
       <div style="font-size:26px;font-weight:900;margin-top:4px">🧊 ICE ALERT</div>
     </div>
     <div style="background:#ffffff;border-radius:0 0 12px 12px;padding:20px">
-      ${image ? `<img src="cid:${image.cid}" alt="" style="display:block;width:100%;max-width:480px;height:auto;border-radius:10px;margin:0 auto 18px">` : ''}
+      ${image ? `<img src="${image.url}" alt="" width="480" style="display:block;width:100%;max-width:480px;height:auto;border-radius:10px;margin:0 auto 18px">` : ''}
       <p style="font-size:18px;margin:0 0 10px"><b>${esc(first)}, you owe ${count}.</b></p>
       <p style="font-size:16px;line-height:1.5;margin:0 0 14px">${esc(reason)}</p>
       <p style="font-size:14px;color:#3a493f;margin:0 0 16px">Team: ${esc(ev.team)}${ev.playoff ? ' · Playoffs: ices count double' : ''}</p>
@@ -64,7 +66,7 @@ function compose(ev) {
     <p style="font-size:11px;color:#5a685f;text-align:center;margin:14px 0 0">Sent automatically by the Fantasy Feetpics site.</p>
   </div></body></html>`;
   const text = `${first}, you owe ${count}.\n\n${reason}\nTeam: ${ev.team}${ev.playoff ? ' (playoffs: ices count double)' : ''}\n\nDue ${ev.deadlineText}.\n\nIce tracker: ${SITE_URL}#ice`;
-  return { subject, html, text, attachments: image ? [image] : [] };
+  return { subject, html, text, image };
 }
 
 // ---------- Sending ----------
@@ -79,7 +81,7 @@ const BCC = env.NOTIFY_BCC || env.GMAIL_USER;
 async function send(to, ev) {
   const m = compose(ev);
   const bcc = BCC && BCC.toLowerCase() !== to.toLowerCase() ? BCC : undefined;
-  await mailer().sendMail({ from: `"Feetpics Ice Bot" <${env.GMAIL_USER}>`, to, bcc, subject: m.subject, html: m.html, text: m.text, attachments: m.attachments });
+  await mailer().sendMail({ from: `"Feetpics Ice Bot" <${env.GMAIL_USER}>`, to, bcc, subject: m.subject, html: m.html, text: m.text });
   return m.subject;
 }
 
@@ -94,7 +96,7 @@ if (TEST_TO) {
   ];
   for (const ev of samples) {
     const subject = await send(TEST_TO, ev);
-    console.log(`Sent test to ${TEST_TO}: ${subject}${compose(ev).attachments.length ? '' : ' (no picture: add one to notify-images/' + ev.kind + '/)'}`);
+    console.log(`Sent test to ${TEST_TO}: ${subject}${compose(ev).image ? '' : ' (no picture: add one to notify-images/' + ev.kind + '/)'}`);
   }
   process.exit(0);
 }
