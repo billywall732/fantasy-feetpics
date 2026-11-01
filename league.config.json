@@ -54,7 +54,7 @@
     "short": "Football",
     "big": "FOOTBALL",
     "goatcounter": "offthewall",
-    "refreshUrl": "",
+    "refreshUrl": "https://league-refresh.offthewall-dev.workers.dev",
     "awards": { "Bench Cuck": "Left on Bench" },
     "teams": {
       "Jason Liskoff": { "name": "Punt Intended", "abbrev": "PUNT" },
@@ -69,6 +69,6 @@
     }
   },
   "leagueFee": 100,
-  "refreshUrl": "https://feetpics-refresh.offthewall-dev.workers.dev",
+  "refreshUrl": "https://league-refresh.offthewall-dev.workers.dev",
   "trafficReportTo": "williamwall2020@gmail.com"
 }
