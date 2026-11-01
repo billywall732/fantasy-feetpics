@@ -203,6 +203,8 @@ const LANDING = /*__LANDING__*/null;
 document.getElementById('big').innerHTML = '__BIG__'.split('').map((c, i) =>
   `<span style="--drop:${(0.1 + i * 0.04).toFixed(2)}s">${c}<span class="gold" aria-hidden="true" style="--glint:${(0.9 + i * 0.12).toFixed(2)}s">${c}</span></span>`).join('');
 document.addEventListener('visibilitychange', () => document.documentElement.classList.toggle('paused', document.hidden));
+// GitHub Pages caches pages for up to 10 minutes: a fresh address opens the newest copy of the app
+document.querySelector('a.cta').href = 'app.html?v=' + Date.now();
 // Camera flashes scattered across the stands.
 document.getElementById('flashes').innerHTML = Array.from({ length: 16 }, () => `<i style="left:${Math.random() * 100}%;top:${Math.random() * 100}%;animation-delay:${(Math.random() * 2.6).toFixed(2)}s;animation-duration:${(2 + Math.random() * 2.5).toFixed(2)}s"></i>`).join('');
 // Season and week from the latest data.

@@ -14,6 +14,11 @@ on:
       hours:
         description: Keep refreshing on the hour for this many hours (0 = refresh once)
         default: '0'
+      source:
+        # "button" = the site's Refresh now button (through worker-refresh): fetch, rebuild and publish only,
+        # no ice emails. Anything else (cron-job.org, Run workflow) behaves as before.
+        description: What started this run (schedule or button)
+        default: schedule
   schedule:
     # Safety net only, in case cron-job.org is down. GitHub may run these late; that just refreshes again.
     - cron: '15 12 * * *'
@@ -41,6 +46,7 @@ jobs:
         run: bash scripts/refresh.sh
         env:
           HOURS: ${{ github.event.inputs.hours || '0' }}
+          SOURCE: ${{ github.event.inputs.source || 'schedule' }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Ice emails (see README): Gmail login, name -> email map, and the on/off switch.
           GMAIL_USER: ${{ secrets.GMAIL_USER }}

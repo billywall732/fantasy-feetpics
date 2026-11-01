@@ -68,5 +68,6 @@
     }
   },
   "leagueFee": 100,
+  "refreshUrl": "",
   "trafficReportTo": "williamwall2020@gmail.com"
 }

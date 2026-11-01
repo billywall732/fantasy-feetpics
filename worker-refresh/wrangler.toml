@@ -1,0 +1,18 @@
+# The Refresh now button's Worker (see README.md in this folder). The GitHub token is a secret:
+#   npx wrangler secret put GITHUB_TOKEN
+# and is never written here.
+name = "feetpics-refresh"
+main = "src/index.js"
+compatibility_date = "2025-10-01"
+workers_dev = true
+
+# Request logs and traces off: nothing about visitors is kept
+[observability]
+enabled = false
+
+[vars]
+REPO = "billywall732/fantasy-feetpics"
+WORKFLOW = "deploy.yml"
+BRANCH = "main"
+# Pages that may call it (localhost is always allowed, for testing)
+ALLOWED_ORIGINS = "https://offthewall.dev,https://billywall732.github.io"

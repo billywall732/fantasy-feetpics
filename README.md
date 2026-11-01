@@ -45,6 +45,17 @@ Two GitHub crons stay in the workflow as a safety net in case cron-job.org is ev
 - **Manual refresh:** `gh workflow run deploy.yml`, or Actions → Build and deploy → Run workflow.
   Set "hours" to keep it refreshing on the hour for that many hours.
 
+## Refresh now button
+
+Both sites (the league's and Fantasy Football) have a **Refresh now** button next to "Updated X min ago". It asks a small Cloudflare Worker (`worker-refresh/`, set up as described in its README) to start the Build and deploy workflow with `source: button`.
+
+- **What a button run does:** it fetches, rebuilds and publishes both sites, and sends **no ice emails**. An ice that locks in during a button run is emailed at the next scheduled run.
+- **Limits:** the Worker refuses while a refresh is running, or within 10 minutes of the last one (of any kind). The page then shows a countdown.
+- **After a press:** the page checks `version.json` every 15 seconds and reloads itself when the new data is published.
+- **Turning it on:** the Worker's address goes in `league.config.json` → `refreshUrl`. With it empty, the button is hidden.
+
+Scheduled and other runs (cron-job.org, GitHub's crons, pushes, Run workflow) leave `source` at `schedule` and behave as before.
+
 ## Ice emails
 
 Each refresh, `notify.mjs` emails the manager who owes as soon as an ice locks in, with a picture, the

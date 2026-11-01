@@ -4,3 +4,6 @@ data/
 site/
 site-public/
 .artifact/
+# Cloudflare Worker local files (worker-refresh/); its secret lives with Cloudflare, never here
+.dev.vars
+.wrangler/

@@ -147,6 +147,10 @@ button { font: inherit; color: inherit; }
 .masthead .fresh { cursor: pointer; font-family: inherit; }
 .masthead .fresh:hover { border-color: rgb(255 255 255 / .35); }
 .masthead .fresh:disabled { cursor: default; }
+.masthead .refresh-now { background: rgb(255 255 255 / .16); }
+.masthead .refresh-now:disabled { opacity: .6; }
+.masthead .meta .refresh-msg { flex-basis: 100%; font-size: 13px; font-weight: 600; background: none; border: 0; padding: 0; white-space: normal; }
+.masthead .refresh-msg[hidden] { display: none; }
 .masthead .fresh.has-new { background: #ffd75e; color: #2b1d00; border-color: #ffd75e; font-weight: 800; }
 .facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; min-width: 0; max-width: 480px; }
 .fact { min-width: 0; padding: 10px 14px; border-radius: var(--radius); background: rgb(255 255 255 / .06); border: 1px solid rgb(255 255 255 / .12); }
@@ -1178,7 +1182,7 @@ $('meta').innerHTML = [
   `🏈 Week ${L.currentWeek} of ${L.regWeeks}`,
   `🎟️ Top ${L.playoffTeams} make the playoffs`,
   `🗓️ Playoffs start week ${playoffStart}`,
-].map((s) => `<span>${esc(s)}</span>`).join('') + '<button type="button" class="fresh" id="fresh" title="Check for newer scores"></button>';
+].map((s) => `<span>${esc(s)}</span>`).join('') + '<button type="button" class="fresh" id="fresh" title="Check for newer scores"></button><button type="button" class="fresh refresh-now" id="refreshNow" hidden>⚡ Refresh now</button><span class="refresh-msg" id="refreshMsg" role="status" aria-live="polite" hidden></span>';
 // How fresh the data is, refreshed every minute.
 function ago(ms) {
   const m = Math.round((Date.now() - ms) / 60000);
@@ -2242,7 +2246,7 @@ $('footer').innerHTML = `<span>🏈 Data from ESPN fantasy league${L.leagueId ? 
    brought back, check version.json (bypassing every cache) and reload if newer data has been published.
    While someone is actively reading, offer a refresh button instead of reloading under them. */
 (() => {
-  if (!/\.github\.io$/.test(location.hostname)) { $('fresh').disabled = true; return; }
+  if (!/\.github\.io$|^offthewall\.dev$|^(localhost|127\.0\.0\.1)$/.test(location.hostname)) { $('fresh').disabled = true; return; }
   let busy = false, newer = null;
   const reload = () => {
     const u = new URL(location.href);
@@ -2268,6 +2272,47 @@ $('footer').innerHTML = `<span>🏈 Data from ESPN fantasy league${L.leagueId ? 
   window.addEventListener('pageshow', (e) => { if (e.persisted) check(true); });
   setTimeout(() => check(true), 1500);
   setInterval(() => check(false), 5 * 60e3);
+
+  // Refresh now: asks the refresh Worker (league.config.json → refreshUrl) to run the ESPN refresh,
+  // then checks version.json every 15 seconds and reloads once newer data is published.
+  if (!L.refreshUrl) return;
+  const btn = $('refreshNow'), msg = $('refreshMsg');
+  const say = (t) => { msg.textContent = t; msg.hidden = !t; };
+  btn.hidden = false;
+  function waitForNew(text) {
+    say(text); btn.disabled = true;
+    const started = Date.now();
+    const tick = async () => {
+      try {
+        const v = await (await fetch(`version.json?t=${Date.now()}`, { cache: 'no-store' })).json();
+        if (v.built > L.built) { newer = v.built; say('New scores are in. Updating…'); return reload(); }
+      } catch { /* offline for a moment: try again next tick */ }
+      if (Date.now() - started > 8 * 60e3) { say('Still working on it. This page updates by itself when the new scores are published.'); btn.disabled = false; return; }
+      setTimeout(tick, 15e3);
+    };
+    setTimeout(tick, 15e3);
+  }
+  function cooldown(sec) {
+    btn.disabled = true;
+    const end = Date.now() + sec * 1000;
+    const tick = () => {
+      const s = Math.ceil((end - Date.now()) / 1000);
+      if (s <= 0) { say(''); btn.disabled = false; return; }
+      say(`Refreshed in the last 10 minutes. Try again in ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}.`);
+      setTimeout(tick, 1000);
+    };
+    tick();
+  }
+  btn.addEventListener('click', async () => {
+    btn.disabled = true; say('Starting a refresh…');
+    let r;
+    try { r = await (await fetch(L.refreshUrl.replace(/\/$/, '') + '/refresh', { method: 'POST' })).json(); }
+    catch { say("Couldn't reach the refresh service. Try again in a minute."); btn.disabled = false; return; }
+    if (r.ok) waitForNew('Refreshing… usually 1–3 minutes.');
+    else if (r.reason === 'running') waitForNew('A refresh is already running… usually 1–3 minutes.');
+    else if (r.reason === 'cooldown') cooldown(r.retryInSec);
+    else { say('The refresh service had a problem. Try again in a minute.'); btn.disabled = false; }
+  });
 })();
 show(location.hash.slice(1));
 </script>

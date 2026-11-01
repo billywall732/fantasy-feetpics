@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
 # Fetch from ESPN, build the site and publish it to the gh-pages branch (which GitHub Pages serves).
 # Refreshes are started on time by cron-job.org (see README), so each run refreshes once.
-#   HOURS  manual runs only: keep refreshing at the top of every hour for this many hours (0 = once)
+#   HOURS   manual runs only: keep refreshing at the top of every hour for this many hours (0 = once)
+#   SOURCE  "button" for the site's Refresh now button: no ice emails (they go out at the next scheduled
+#           run, which still sees them as unsent) and no hourly repeat. Anything else: as before.
 set -uo pipefail
 
+SOURCE=${SOURCE:-schedule}
+[ "$SOURCE" = button ] && HOURS=0
 STOP=$(( $(date +%s) + ${HOURS:-0} * 3600 ))
+echo "Refresh started by: $SOURCE"
 
 npm ci --silent --no-audit --no-fund
 
@@ -17,7 +22,11 @@ publish() {
   # The carried-forward copy is published even if sending fails, so nothing is emailed twice.
   if git fetch -q origin gh-pages 2>/dev/null && git show origin/gh-pages:notified.json > /tmp/notified.json 2>/dev/null; then :; else echo '[]' > /tmp/notified.json; fi
   cp /tmp/notified.json site/notified.json
-  node notify.mjs --state /tmp/notified.json || echo "::warning::Some ice emails failed; they will be retried next refresh"
+  if [ "$SOURCE" = button ]; then
+    echo "Started by the Refresh now button: no ice emails this run"
+  else
+    node notify.mjs --state /tmp/notified.json || echo "::warning::Some ice emails failed; they will be retried next refresh"
+  fi
   rm -rf /tmp/pub && cp -r site /tmp/pub
   (
     cd /tmp/pub &&
