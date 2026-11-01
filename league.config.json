@@ -68,6 +68,6 @@
     }
   },
   "leagueFee": 100,
-  "refreshUrl": "",
+  "refreshUrl": "https://feetpics-refresh.offthewall-dev.workers.dev",
   "trafficReportTo": "williamwall2020@gmail.com"
 }
