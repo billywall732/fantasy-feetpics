@@ -423,6 +423,28 @@ td.titles .no-title { color: var(--muted); font-family: var(--font-display); fon
 .ice-rules .sub-rules { margin: 16px 0 0; font-family: var(--font-display); font-weight: 800; font-size: 20px; text-transform: uppercase; letter-spacing: .02em; }
 .ice-rules .off-field { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 6px; line-height: 1.4; }
 .ice-rules .off-field li { display: flex; gap: 8px; align-items: baseline; }
+/* Sample ice emails (public copy): dashed, watermarked and badged so no one mistakes them for real mail */
+.email-samples { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 14px; }
+.email-sample { position: relative; padding: 14px; border: 2px dashed #c98a12; display: grid; gap: 12px; overflow: hidden;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='120'%3E%3Ctext x='10' y='70' transform='rotate(-24 90 60)' font-family='Arial' font-weight='900' font-size='30' fill='%23c98a12' fill-opacity='.09'%3ESAMPLE%3C/text%3E%3C/svg%3E"); }
+.email-flag { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+.sample-badge { font: 800 12px/1 var(--font-display, sans-serif); letter-spacing: .1em; text-transform: uppercase; padding: 6px 10px; border-radius: 999px; background: #c98a12; color: #1a1205; }
+.email-meta { margin: 0; display: grid; gap: 4px; font-size: 14px; }
+.email-meta > div { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 8px; }
+.email-meta dt { color: var(--ink-2); }
+.email-meta dd { margin: 0; overflow-wrap: anywhere; }
+.email-meta .placeholder { font-family: ui-monospace, Menlo, Consolas, monospace; background: var(--line); padding: 1px 6px; border-radius: 4px; }
+.email-body { border-radius: 12px; overflow: hidden; background: #eef3ee; color: #0c1810; font-family: Arial, Helvetica, sans-serif; }
+.email-top { background: #04110b; color: #f2f8f3; padding: 12px 16px; display: grid; gap: 2px; }
+.email-top span { font-size: 11px; letter-spacing: 2px; color: #a9c2b1; font-weight: bold; }
+.email-top b { font-size: 22px; font-weight: 900; }
+.email-main { background: #fff; margin: 0 10px 10px; border-radius: 0 0 10px 10px; padding: 14px 16px; display: grid; gap: 8px; font-size: 15px; line-height: 1.45; }
+.email-main p { margin: 0; }
+.email-main .note { color: #3a493f; }
+.email-hi { font-size: 17px; }
+.email-penalty { background: #f4f8f4; border-radius: 8px; padding: 8px 10px; }
+.email-due { background: #e8f4ff; border-left: 4px solid #1b7fe8; border-radius: 8px; padding: 10px 12px; }
+.email-btn { justify-self: start; background: #0d8a48; color: #fff; font-weight: bold; padding: 10px 16px; border-radius: 999px; font-size: 14px; cursor: default; opacity: .85; }
 .ice-rules-mascot { position: absolute; right: 18px; bottom: -10px; width: 170px; height: auto; filter: drop-shadow(0 10px 16px rgb(0 0 0 / .25)); }
 
 /* Ice mascot beside "Ices due" */
@@ -872,6 +894,14 @@ nav.tabs .tablist a .emoji { display: none; }
           <div id="ice-due"></div>
         </div>
         <img class="ice-mascot" src="ice-mascot.png" width="385" height="520" alt="" loading="lazy" decoding="async">
+      </div>
+      <!-- Public copy only: what the ice emails look like. Samples on the page; nothing is sent from here. -->
+      <div class="block" id="ice-email-block" hidden>
+        <div class="block-head">
+          <h2>The ice email</h2>
+          <p>When an ice locks in, the league's site emails whoever owes. These are samples built from this season's results. Nothing on this page sends email.</p>
+        </div>
+        <div class="email-samples" id="ice-email-samples"></div>
       </div>
       <div class="block">
         <div class="block-head">
@@ -1727,6 +1757,47 @@ function liveIce(wk) {
         <div class="panel scroll"><table id="ice-watch"><thead><tr><th>Owner</th><th class="r">Score</th><th class="r">Proj</th><th class="r">To play</th><th>Chance of lowest</th></tr></thead><tbody>${rows}</tbody></table></div></div>
     </div>`;
 }
+// Sample ice emails for the public copy, worded like notify.mjs's real ones and filled in from
+// this season's ices. Display only: no form, no link that sends anything, a placeholder address.
+function renderIceEmailSamples() {
+  const I = D.ice, block = $('ice-email-block');
+  const found = (kind) => {
+    for (const wk of [...I.weeks].reverse()) for (const o of wk.owed) { const r = o.reasons.find((x) => x.kind === kind); if (r) return { wk, o, r }; }
+    return null;
+  };
+  const due = (wk) => (wk.deadline ? new Date(wk.deadline).toLocaleString('en-US', { timeZone: 'America/New_York', weekday: 'long', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) + ' ET' : 'kickoff of the next Thursday night game');
+  const mail = (kind, hit) => {
+    const { wk, o, r } = hit, first = (D.owners[o.ownerId]?.name || 'Manager').split(' ')[0], count = r.ices > 1 ? `${r.ices} ices` : 'an ice';
+    const why = kind === 'lowest'
+      ? `You had the lowest score in the league in week ${wk.week}: ${f2(r.score)} points.`
+      : `${r.player}${r.pos && !r.player.endsWith(r.pos) ? ` (${r.pos})` : ''} scored ${f2(r.pts)} in your starting lineup in week ${wk.week}.`;
+    const subject = kind === 'lowest' ? `🧊 You owe ${count}: lowest score of week ${wk.week} (${f2(r.score)})` : `🧊 You owe ${count}: ${r.player} scored ${f2(r.pts)}`;
+    return `<article class="panel email-sample" aria-label="Sample email, not sent">
+      <div class="email-flag"><span class="sample-badge">Sample email — not sent</span><span class="note">${kind === 'lowest' ? 'Lowest score of the week' : 'A starter at 0 or less'}</span></div>
+      <dl class="email-meta">
+        <div><dt>From</dt><dd>${esc(L.name)} Ice Bot</dd></div>
+        <div><dt>To</dt><dd><span class="placeholder">team-manager@example.com</span> <span class="note">(placeholder)</span></dd></div>
+        <div><dt>Subject</dt><dd><b>${esc(subject)}</b></dd></div>
+      </dl>
+      <div class="email-body">
+        <div class="email-top"><span>${esc(L.name.toUpperCase())} · WEEK ${wk.week}</span><b>🧊 ICE ALERT</b></div>
+        <div class="email-main">
+          <p class="email-hi"><b>${esc(first)}, you owe ${count}.</b></p>
+          <p>${esc(why)}</p>
+          <p class="note">Team: ${esc(T[o.teamId].name)}${wk.playoff ? ' · Playoffs: ices count double' : ''}</p>
+          <p class="email-penalty">The penalty: one Smirnoff Ice, chugged in one go${r.ices > 1 ? `, ${r.ices} times` : ''}. Log your time in the league's ice sheet.</p>
+          <div class="email-due">⏰ <b>Due ${esc(due(wk))}</b></div>
+          <span class="email-btn" aria-hidden="true">See the ice tracker</span>
+        </div>
+      </div>
+    </article>`;
+  };
+  const lowest = found('lowest'), dud = found('dud');
+  if (!lowest && !dud) { block.hidden = true; return; }
+  $('ice-email-samples').innerHTML = [lowest && mail('lowest', lowest), dud && mail('dud', dud)].filter(Boolean).join('');
+  block.hidden = false;
+}
+
 function renderIce() {
   const I = D.ice;
   const now = Date.now();
@@ -1762,6 +1833,7 @@ function renderIce() {
   }
   if (latest && latest.deadline <= now) html += head(latest, false) + cards(latest);
   $('ice-due').innerHTML = html || '<p class="note">No weeks played yet.</p>';
+  if (D.public) renderIceEmailSamples();
 
   const maxAvg = Math.max(...I.table.map((r) => r.avg || 0));
   const timed = I.table.filter((r) => r.avg != null);
