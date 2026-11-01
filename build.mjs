@@ -988,7 +988,8 @@ const rules = (() => {
 // ---------- Output ----------
 const model = {
   public: PUBLIC,
-  league: { name: leagueName, season: SEASON, currentWeek, lastWeek, regWeeks, playoffTeams, size: teams.length, trades, updated: cur.status.standingsUpdateDate, built: Date.now(), leagueId: PUBLIC ? null : env.LEAGUE_ID, refreshUrl: config.refreshUrl || '', weekStart: weekSpans[currentWeek]?.first ?? null, weekEnd: weekSpans[currentWeek]?.last ?? null },
+  league: { name: leagueName, season: SEASON, currentWeek, lastWeek, regWeeks, playoffTeams, size: teams.length, trades, updated: cur.status.standingsUpdateDate, built: Date.now(), leagueId: PUBLIC ? null : env.LEAGUE_ID, // The public copy can have its own refresh address (one without the league's name in it)
+    refreshUrl: (PUBLIC ? config.public.refreshUrl ?? config.refreshUrl : config.refreshUrl) || '', weekStart: weekSpans[currentWeek]?.first ?? null, weekEnd: weekSpans[currentWeek]?.last ?? null },
   teams: teams.sort((a, b) => a.seed - b.seed),
   matchups,
   upcoming,

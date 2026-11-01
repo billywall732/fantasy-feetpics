@@ -29,8 +29,10 @@ The **Refresh now** button on Fantasy Feetpics and Fantasy Football asks this Cl
    ```
    npx wrangler deploy
    ```
-   It prints the Worker's address, like `https://feetpics-refresh.<your-subdomain>.workers.dev`.
-5. **Switch the button on.** Put that address in `league.config.json` → `"refreshUrl"`, commit and push. The button appears on both sites after the next refresh.
+   It prints the Worker's address, like `https://league-refresh.<your-subdomain>.workers.dev`.
+5. **Switch the button on.** Put that address in `league.config.json`, both in `"refreshUrl"` (the league site) and in `public` → `"refreshUrl"` (Fantasy Football), then commit and push. The button appears after the next refresh.
+
+   The Worker's name stays neutral (`league-refresh`) because its address appears on the public site, and the public build refuses to publish anything that says "Feetpics".
 
 **When the token expires,** make a new one (step 1) and run step 3 again.
 

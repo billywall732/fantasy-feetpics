@@ -54,6 +54,7 @@
     "short": "Football",
     "big": "FOOTBALL",
     "goatcounter": "offthewall",
+    "refreshUrl": "",
     "awards": { "Bench Cuck": "Left on Bench" },
     "teams": {
       "Jason Liskoff": { "name": "Punt Intended", "abbrev": "PUNT" },

@@ -1,7 +1,8 @@
 # The Refresh now button's Worker (see README.md in this folder). The GitHub token is a secret:
 #   npx wrangler secret put GITHUB_TOKEN
 # and is never written here.
-name = "feetpics-refresh"
+# A neutral name: the address ends up on the public Fantasy Football site, which must not show "Feetpics"
+name = "league-refresh"
 main = "src/index.js"
 compatibility_date = "2025-10-01"
 workers_dev = true
