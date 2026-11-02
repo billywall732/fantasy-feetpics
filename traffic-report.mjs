@@ -52,12 +52,16 @@ const tzOffset = (ms, tz) => {
 };
 // Wall-clock time in the account's zone -> real instant.
 const fromZone = (day, hour) => { const guess = Date.parse(`${day}T${String(hour).padStart(2, '0')}:00:00Z`); return guess - tzOffset(guess, GC_TZ); };
-const total = await api('/stats/total', span);
+// Page views only: the site's counter (offthewall.dev/shared/count.js) also sends aggregate events
+// (device and browser, entry, time on page, exit), which aren't visits. So the totals are built
+// from the per-page counts, leaving events out, rather than from GoatCounter's overall total.
+const hits = await api('/stats/hits', { ...span, limit: 100 }).catch(() => ({ hits: [] }));
+const views = (hits.hits || []).filter((h) => !h.event);
 const grid = {}; // 'YYYY-MM-DD' (ET) -> [24]
-for (const d of total.stats || []) {
-  (d.hourly || []).forEach((n, h) => {
+for (const h of views) for (const d of h.stats || []) {
+  (d.hourly || []).forEach((n, hr) => {
     if (!n) return;
-    const ms = fromZone(d.day, h);
+    const ms = fromZone(d.day, hr);
     const p = etParts(ms);
     const key = `${p.year}-${p.month}-${p.day}`;
     (grid[key] ??= Array(24).fill(0))[Number(p.hour)] += n;
@@ -75,9 +79,8 @@ const busiestHour = byHour.indexOf(Math.max(...byHour));
 // ---------- Top tabs and referrers ----------
 const range = { start: utcDay(dayKeys[0], 0), end: utcDay(dayKeys.at(-1), 1) };
 // Per page, the same day/hour breakdown as the site total, converted to Eastern days.
-const hits = await api('/stats/hits', { ...span, limit: 20 }).catch(() => ({ hits: [] }));
 const refs = await api('/stats/toprefs', { ...range, limit: 8 }).catch(() => ({ stats: [] }));
-const pageRows = (hits.hits || []).map((h) => {
+const pageRows = views.map((h) => {
   const days = {}, hours = Array(24).fill(0);
   for (const d of h.stats || []) {
     if (Array.isArray(d.hourly) && d.hourly.some(Boolean)) {

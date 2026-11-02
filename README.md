@@ -56,6 +56,20 @@ Both sites (the league's and Fantasy Football) have a **Refresh now** button nex
 
 Scheduled and other runs (cron-job.org, GitHub's crons, pushes, Run workflow) leave `source` at `schedule` and behave as before.
 
+## Visit counts
+
+Both the league site and Fantasy Football load Off the Wall's counter script, `https://offthewall.dev/shared/count.js`. It sends:
+- page paths without query strings;
+- the referrer's domain only;
+- device type and browser family;
+- entry page, time on page and an estimated exit page.
+
+There are no cookies.
+
+The league site reports to `fantasy.goatcounter.com`, and Fantasy Football to `offthewall`. Both show on the hidden https://offthewall.dev/stats/ page, which has a toggle between them.
+
+The weekly traffic email (`traffic-report.mjs`) counts page views only and leaves those events out.
+
 ## Ice emails
 
 Each refresh, `notify.mjs` emails the manager who owes as soon as an ice locks in, with a picture, the
