@@ -1441,7 +1441,7 @@ function swapRecord(S, a, b) {
 }
 const recStr = (w, l, t) => `${w}-${l}${t ? '-' + t : ''}`;
 const ownerName = (id) => D.owners[id]?.name ?? '';
-// A person's short name: their first name (the public copy's 'Manager 3' labels stay whole)
+// A person's short name: their first name (the public copy already shows first names only)
 const firstName = (name) => (D.public ? name : String(name).split(' ')[0]);
 let wiYear = String(L.season), wiA = null, wiB = null;
 function renderWhatIf() {
@@ -2262,7 +2262,7 @@ function buildHeadlines() {
   $('ticker').innerHTML = items + (reduceMotion ? '' : items.replace(/<span>/g, '<span aria-hidden="true">'));
 }
 
-$('footer').innerHTML = `<span>🏈 Data from ESPN fantasy league${L.leagueId ? ` ${esc(L.leagueId)}` : ''} · Standings as of ${fmtDate(L.updated)}</span><span>Page built ${fmtDate(L.built)}</span>${D.public ? '<span class="privacy-note">Teams and names redacted for privacy</span>' : ''}`;
+$('footer').innerHTML = `<span>🏈 Data from ESPN fantasy league${L.leagueId ? ` ${esc(L.leagueId)}` : ''} · Standings as of ${fmtDate(L.updated)}</span><span>Page built ${fmtDate(L.built)}</span>${D.public ? '<span class="privacy-note">Team names changed and last names left out for privacy</span>' : ''}`;
 
 /* ---------- Stay current ----------
    Home-screen apps and background tabs keep the page they first loaded. Whenever the site is opened or

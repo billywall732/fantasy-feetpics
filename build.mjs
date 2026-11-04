@@ -49,22 +49,17 @@ for (const o of Object.values(owners)) {
 // Every name an owner goes by, for matching the ice sheet. Kept here, off the page, so the public
 // copy can still match "Billy Wall" in the sheet while showing only "Billy".
 const ownerNames = Object.fromEntries(Object.values(owners).map((o) => [o.id, [o.name, o.espnName, o.short, o.handle, ...(o.aliases || [])].filter(Boolean)]));
-// Names the public copy must never show: full names and profile names anywhere, and each
-// person's first name or nickname as a person (in the owner fields; NFL players can share them).
+// Names the public copy must never show (first names on their own are fine).
 const privateNames = new Set(Object.values(owners).flatMap((o) => [o.handle, ...[o.name, o.espnName, ...(o.aliases || [])].filter((n) => n?.includes(' '))]).filter(Boolean));
-const firstNames = new Set(Object.values(owners).flatMap((o) => [o.short, o.name.split(' ')[0], ...(o.aliases || []).filter((n) => !n.includes(' '))]).filter(Boolean));
 const realTeamNames = new Set();
 const pubTeam = {}; // ownerId -> { name, abbrev }, public copy only
 if (PUBLIC) {
-  // No personal names at all: each person is "Manager N", numbered by their place in
-  // league.config.json -> public.teams, so the labels stay the same from build to build
-  const order = Object.keys(config.public.teams);
+  // The public copy: made-up team names, and each person by first name only
   for (const o of Object.values(owners)) {
     const key = o.espnName ?? o.name, p = config.public.teams[key];
     if (!p) throw new Error(`No public team name for ${key} in league.config.json -> public.teams.`);
     pubTeam[o.id] = p;
-    const label = `Manager ${order.indexOf(key) + 1}`;
-    owners[o.id] = { id: o.id, name: label, short: label };
+    owners[o.id] = { id: o.id, name: o.short ?? o.name.split(' ')[0], short: o.short ?? o.name.split(' ')[0] };
   }
 }
 const teamName = (t) => { realTeamNames.add(t.name.trim()); return PUBLIC ? pubTeam[t.primaryOwner].name : t.name.trim(); };
@@ -1096,13 +1091,6 @@ if (PUBLIC) {
   const banned = [...privateNames, ...realTeamNames, ...Object.keys(config.public.awards ?? {}), cur.settings.name.trim(), 'feetpics'].filter((n) => n.length > 2);
   const pages = [appHtml, landingHtml, manifest].join('\n').toLowerCase();
   const found = banned.filter((n) => pages.includes(n.toLowerCase()) || pages.includes(JSON.stringify(n).slice(1, -1).toLowerCase()));
-  // A person's first name in any owner field, or as a whole word in the page text outside the
-  // data (headings, notes, sample emails)
-  const ownerFields = [...appHtml.matchAll(/"(owner|name|short)":"([^"]*)"/g)].map((m) => m[2]);
-  const pageText = [appHtml.replace(/<script[\s\S]*?<\/script>/g, ''), landingHtml.replace(/<script[\s\S]*?<\/script>/g, '')].join('\n');
-  for (const n of firstNames) {
-    if (ownerFields.includes(n) || new RegExp(`\\b${n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(pageText)) found.push(n);
-  }
   if (found.length) throw new Error(`The public copy still shows: ${found.join(', ')}`);
 }
 
