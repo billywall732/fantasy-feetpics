@@ -1441,6 +1441,8 @@ function swapRecord(S, a, b) {
 }
 const recStr = (w, l, t) => `${w}-${l}${t ? '-' + t : ''}`;
 const ownerName = (id) => D.owners[id]?.name ?? '';
+// A person's short name: their first name (the public copy's 'Manager 3' labels stay whole)
+const firstName = (name) => (D.public ? name : String(name).split(' ')[0]);
 let wiYear = String(L.season), wiA = null, wiB = null;
 function renderWhatIf() {
   const years = Object.keys(D.schedules).sort().reverse();
@@ -1470,13 +1472,13 @@ function renderWhatIf() {
       <div class="wi-rec"><b>${recStr(r.w, r.l, r.t)}</b><span>actual ${recStr(r.aw, r.al, r.at)}</span></div>${verdict}</div>`;
   };
   $('wi-summary').innerHTML = card(wiA, wiB, ab) + card(wiB, wiA, ba);
-  $('wi-weeks').innerHTML = `<thead><tr><th>Wk</th><th>Would face</th><th class="r">${esc(ownerName(wiA).split(' ')[0])}</th><th class="r">Opp</th><th>Result</th><th>Actually</th></tr></thead><tbody>${ab.weeks.map((w) => `
+  $('wi-weeks').innerHTML = `<thead><tr><th>Wk</th><th>Would face</th><th class="r">${esc(firstName(ownerName(wiA)))}</th><th class="r">Opp</th><th>Result</th><th>Actually</th></tr></thead><tbody>${ab.weeks.map((w) => `
     <tr class="${w.result !== w.actual ? 'changed' : ''}"><td>${w.week}</td><td style="white-space:normal">${esc(ownerName(w.opp))}<small class="note"> · ${esc(S.teamNames[w.opp] || '')}</small></td>
     <td class="r"><b>${f2(w.mine)}</b></td><td class="r">${f2(w.theirs)}</td><td>${resPill(w.result)}${w.result !== w.actual ? ` ${E(w.result === 'W' ? '✨' : '💔')}` : ''}</td>
-    <td class="note">${w.actual} vs ${esc(ownerName(w.actualOpp).split(' ')[0])}</td></tr>`).join('')}</tbody>`;
+    <td class="note">${w.actual} vs ${esc(firstName(ownerName(w.actualOpp)))}</td></tr>`).join('')}</tbody>`;
 
   // Everyone against everyone's schedule.
-  const short = (id) => { const n = ownerName(id).split(' '); return n[0] + (n[1] ? ' ' + n[1][0] + '.' : ''); };
+  const short = (id) => { if (D.public) return ownerName(id); const n = ownerName(id).split(' '); return n[0] + (n[1] ? ' ' + n[1][0] + '.' : ''); };
   $('swap-grid').innerHTML = `<thead><tr><th class="rowh">Manager ↓ · Schedule →</th>${ids.map((id) => `<th>${esc(short(id))}</th>`).join('')}</tr></thead><tbody>${ids.map((a) => {
     const actual = swapRecord(S, a, a).aw;
     return `<tr><th class="rowh">${esc(ownerName(a))}</th>${ids.map((b) => {
@@ -1781,7 +1783,7 @@ function renderIceEmailSamples() {
   };
   const due = (wk) => (wk.deadline ? new Date(wk.deadline).toLocaleString('en-US', { timeZone: 'America/New_York', weekday: 'long', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) + ' ET' : 'kickoff of the next Thursday night game');
   const mail = (kind, hit) => {
-    const { wk, o, r } = hit, first = (D.owners[o.ownerId]?.name || 'Manager').split(' ')[0], count = r.ices > 1 ? `${r.ices} ices` : 'an ice';
+    const { wk, o, r } = hit, first = firstName(D.owners[o.ownerId]?.name || 'Manager'), count = r.ices > 1 ? `${r.ices} ices` : 'an ice';
     const why = kind === 'lowest'
       ? `You had the lowest score in the league in week ${wk.week}: ${f2(r.score)} points.`
       : `${r.player}${r.pos && !r.player.endsWith(r.pos) ? ` (${r.pos})` : ''} scored ${f2(r.pts)} in your starting lineup in week ${wk.week}.`;
@@ -2260,7 +2262,7 @@ function buildHeadlines() {
   $('ticker').innerHTML = items + (reduceMotion ? '' : items.replace(/<span>/g, '<span aria-hidden="true">'));
 }
 
-$('footer').innerHTML = `<span>🏈 Data from ESPN fantasy league${L.leagueId ? ` ${esc(L.leagueId)}` : ''} · Standings as of ${fmtDate(L.updated)}</span><span>Page built ${fmtDate(L.built)}</span>`;
+$('footer').innerHTML = `<span>🏈 Data from ESPN fantasy league${L.leagueId ? ` ${esc(L.leagueId)}` : ''} · Standings as of ${fmtDate(L.updated)}</span><span>Page built ${fmtDate(L.built)}</span>${D.public ? '<span class="privacy-note">Teams and names redacted for privacy</span>' : ''}`;
 
 /* ---------- Stay current ----------
    Home-screen apps and background tabs keep the page they first loaded. Whenever the site is opened or
