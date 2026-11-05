@@ -32,10 +32,20 @@ const isStarter = (slot) => slot !== 20 && slot !== 21;
 const playerName = (id) => playerStats.get(id)?.name ?? playerIndex.get(id)?.name ?? `Player ${id}`;
 const playerPos = (id) => POS[playerStats.get(id)?.pos ?? playerIndex.get(id)?.pos] ?? '?';
 
+// ---------- Seasons ----------
+// ESPN's past seasons (data/, fetched each run), plus seasons from before the league was on ESPN,
+// kept in git in history/ (made by scripts/import-season-sheet.mjs)
+const HISTORY = existsSync(new URL('history/', import.meta.url))
+  ? readdirSync(new URL('history/', import.meta.url)).map((f) => f.match(/^season-(\d{4})\.json$/)?.[1]).filter(Boolean).map(Number)
+  : [];
+const pastSeasons = [...new Set([...(cur.status.previousSeasons || []), ...HISTORY])].filter((y) => y !== SEASON);
+const seasonData = (y) => (y === SEASON ? cur
+  : existsSync(new URL(`data/season-${y}.json`, import.meta.url)) ? read(`data/season-${y}.json`) : read(`history/season-${y}.json`));
+
 // ---------- Owners (stable across seasons; team names change every year) ----------
 const owners = {};
-for (const season of [SEASON, ...(cur.status.previousSeasons || [])]) {
-  const s = season === SEASON ? cur : read(`data/season-${season}.json`);
+for (const season of [SEASON, ...pastSeasons]) {
+  const s = seasonData(season);
   for (const m of s.members || []) {
     owners[m.id] ??= { id: m.id, name: `${m.firstName} ${m.lastName}`.trim(), handle: m.displayName };
   }
@@ -750,8 +760,8 @@ if (mostIces?.earned) {
 // ---------- History ----------
 const seasons = [];
 const allGames = []; // regular season, every season including the current one
-for (const year of [...(cur.status.previousSeasons || []), SEASON].sort()) {
-  const s = year === SEASON ? cur : read(`data/season-${year}.json`);
+for (const year of [...pastSeasons, SEASON].sort()) {
+  const s = seasonData(year);
   const reg = s.settings.scheduleSettings.matchupPeriodCount;
   const done = s.schedule.filter((m) => m.winner !== 'UNDECIDED' && m.away);
   const tName = Object.fromEntries(s.teams.map((t) => [t.id, teamName(t)]));

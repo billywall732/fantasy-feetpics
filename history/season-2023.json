@@ -1,0 +1,1001 @@
+{
+  "seasonId": 2023,
+  "source": "Google Sheet 1sZqVg8UT38CwUhj9JNdRcojiwCkrYalLoEegrZJkF4Q (imported by scripts/import-season-sheet.mjs)",
+  "settings": {
+    "scheduleSettings": {
+      "matchupPeriodCount": 15,
+      "playoffTeamCount": 4
+    }
+  },
+  "status": {},
+  "members": [
+    {
+      "id": "{8F306964-EB97-41AB-B069-64EB9731ABE7}",
+      "firstName": "Hingle",
+      "lastName": "McCringleberry",
+      "displayName": "Timviola13"
+    },
+    {
+      "id": "{C213AB83-FF67-4D9D-89F7-7C50E8E8FAAD}",
+      "firstName": "Anthony",
+      "lastName": "Confalone",
+      "displayName": "espn45942468"
+    },
+    {
+      "id": "{2CC1E1FE-7B01-4799-81E1-FE7B01479911}",
+      "firstName": "Jason",
+      "lastName": "Liskoff",
+      "displayName": "jliskoff"
+    },
+    {
+      "id": "{A29E6FFA-C288-439C-9A50-09A83AC104D7}",
+      "firstName": "James",
+      "lastName": "Waring",
+      "displayName": "espn51479162"
+    },
+    {
+      "id": "{7DAD1386-01DE-486C-841E-92C3E149421D}",
+      "firstName": "Bryan",
+      "lastName": "Wall",
+      "displayName": "BryanW123456789"
+    },
+    {
+      "id": "{3024D4A9-91BF-4ABF-9191-F88B0BA146E2}",
+      "firstName": "Ian",
+      "lastName": "Kenny",
+      "displayName": "iankenny1"
+    },
+    {
+      "id": "{B46612A9-E35B-4627-AB5F-FEA4AC071F6F}",
+      "firstName": "Ben",
+      "lastName": "Wick",
+      "displayName": "espn67919409"
+    },
+    {
+      "id": "{9C8E8758-A2CF-43E2-B1E2-7D3BAF6863A2}",
+      "firstName": "Billy",
+      "lastName": "Wall",
+      "displayName": "\"The Texas Hammer\""
+    }
+  ],
+  "teams": [
+    {
+      "id": 8,
+      "name": "JK Throbbins",
+      "primaryOwner": "{8F306964-EB97-41AB-B069-64EB9731ABE7}",
+      "playoffSeed": 1,
+      "rankCalculatedFinal": 3,
+      "record": {
+        "overall": {
+          "wins": 12,
+          "losses": 3,
+          "ties": 0,
+          "pointsFor": 2115.36
+        }
+      }
+    },
+    {
+      "id": 6,
+      "name": "So Big it HURTS",
+      "primaryOwner": "{C213AB83-FF67-4D9D-89F7-7C50E8E8FAAD}",
+      "playoffSeed": 2,
+      "rankCalculatedFinal": 2,
+      "record": {
+        "overall": {
+          "wins": 10,
+          "losses": 5,
+          "ties": 0,
+          "pointsFor": 2133.96
+        }
+      }
+    },
+    {
+      "id": 1,
+      "name": "Catalina Wine Mixon",
+      "primaryOwner": "{2CC1E1FE-7B01-4799-81E1-FE7B01479911}",
+      "playoffSeed": 3,
+      "rankCalculatedFinal": 4,
+      "record": {
+        "overall": {
+          "wins": 8,
+          "losses": 7,
+          "ties": 0,
+          "pointsFor": 2017.28
+        }
+      }
+    },
+    {
+      "id": 7,
+      "name": "Arlington Analists",
+      "primaryOwner": "{A29E6FFA-C288-439C-9A50-09A83AC104D7}",
+      "playoffSeed": 4,
+      "rankCalculatedFinal": 1,
+      "record": {
+        "overall": {
+          "wins": 7,
+          "losses": 8,
+          "ties": 0,
+          "pointsFor": 2136.64
+        }
+      }
+    },
+    {
+      "id": 4,
+      "name": "Big Ballz",
+      "primaryOwner": "{7DAD1386-01DE-486C-841E-92C3E149421D}",
+      "playoffSeed": 5,
+      "rankCalculatedFinal": 6,
+      "record": {
+        "overall": {
+          "wins": 7,
+          "losses": 8,
+          "ties": 0,
+          "pointsFor": 2062.14
+        }
+      }
+    },
+    {
+      "id": 5,
+      "name": "Anti Daniel Jones",
+      "primaryOwner": "{3024D4A9-91BF-4ABF-9191-F88B0BA146E2}",
+      "playoffSeed": 6,
+      "rankCalculatedFinal": 7,
+      "record": {
+        "overall": {
+          "wins": 7,
+          "losses": 8,
+          "ties": 0,
+          "pointsFor": 2013.76
+        }
+      }
+    },
+    {
+      "id": 3,
+      "name": "Chase'n Aces",
+      "primaryOwner": "{B46612A9-E35B-4627-AB5F-FEA4AC071F6F}",
+      "playoffSeed": 7,
+      "rankCalculatedFinal": 5,
+      "record": {
+        "overall": {
+          "wins": 6,
+          "losses": 9,
+          "ties": 0,
+          "pointsFor": 2038.1
+        }
+      }
+    },
+    {
+      "id": 2,
+      "name": "Sorry for Purdy Rockin'",
+      "primaryOwner": "{9C8E8758-A2CF-43E2-B1E2-7D3BAF6863A2}",
+      "playoffSeed": 8,
+      "rankCalculatedFinal": 8,
+      "record": {
+        "overall": {
+          "wins": 3,
+          "losses": 12,
+          "ties": 0,
+          "pointsFor": 1733.4
+        }
+      }
+    }
+  ],
+  "schedule": [
+    {
+      "matchupPeriodId": 1,
+      "home": {
+        "teamId": 1,
+        "totalPoints": 163.94
+      },
+      "away": {
+        "teamId": 2,
+        "totalPoints": 104.98
+      },
+      "winner": "HOME"
+    },
+    {
+      "matchupPeriodId": 1,
+      "home": {
+        "teamId": 3,
+        "totalPoints": 104.84
+      },
+      "away": {
+        "teamId": 4,
+        "totalPoints": 100.34
+      },
+      "winner": "HOME"
+    },
+    {
+      "matchupPeriodId": 1,
+      "home": {
+        "teamId": 5,
+        "totalPoints": 118.06
+      },
+      "away": {
+        "teamId": 6,
+        "totalPoints": 147.4
+      },
+      "winner": "AWAY"
+    },
+    {
+      "matchupPeriodId": 1,
+      "home": {
+        "teamId": 7,
+        "totalPoints": 127.56
+      },
+      "away": {
+        "teamId": 8,
+        "totalPoints": 133.3
+      },
+      "winner": "AWAY"
+    },
+    {
+      "matchupPeriodId": 2,
+      "home": {
+        "teamId": 1,
+        "totalPoints": 119.9
+      },
+      "away": {
+        "teamId": 5,
+        "totalPoints": 163.68
+      },
+      "winner": "AWAY"
+    },
+    {
+      "matchupPeriodId": 2,
+      "home": {
+        "teamId": 3,
+        "totalPoints": 144.34
+      },
+      "away": {
+        "teamId": 8,
+        "totalPoints": 151.64
+      },
+      "winner": "AWAY"
+    },
+    {
+      "matchupPeriodId": 2,
+      "home": {
+        "teamId": 7,
+        "totalPoints": 156.2
+      },
+      "away": {
+        "teamId": 4,
+        "totalPoints": 123.56
+      },
+      "winner": "HOME"
+    },
+    {
+      "matchupPeriodId": 2,
+      "home": {
+        "teamId": 6,
+        "totalPoints": 122.02
+      },
+      "away": {
+        "teamId": 2,
+        "totalPoints": 97.84
+      },
+      "winner": "HOME"
+    },
+    {
+      "matchupPeriodId": 3,
+      "home": {
+        "teamId": 1,
+        "totalPoints": 155.98
+      },
+      "away": {
+        "teamId": 6,
+        "totalPoints": 139.38
+      },
+      "winner": "HOME"
+    },
+    {
+      "matchupPeriodId": 3,
+      "home": {
+        "teamId": 3,
+        "totalPoints": 125.36
+      },
+      "away": {
+        "teamId": 7,
+        "totalPoints": 194.4
+      },
+      "winner": "AWAY"
+    },
+    {
+      "matchupPeriodId": 3,
+      "home": {
+        "teamId": 5,
+        "totalPoints": 162.04
+      },
+      "away": {
+        "teamId": 2,
+        "totalPoints": 128.86
+      },
+      "winner": "HOME"
+    },
+    {
+      "matchupPeriodId": 3,
+      "home": {
+        "teamId": 4,
+        "totalPoints": 151.62
+      },
+      "away": {
+        "teamId": 8,
+        "totalPoints": 161.08
+      },
+      "winner": "AWAY"
+    },
+    {
+      "matchupPeriodId": 4,
+      "home": {
+        "teamId": 1,
+        "totalPoints": 103.62
+      },
+      "away": {
+        "teamId": 8,
+        "totalPoints": 130.16
+      },
+      "winner": "AWAY"
+    },
+    {
+      "matchupPeriodId": 4,
+      "home": {
+        "teamId": 3,
+        "totalPoints": 135.94
+      },
+      "away": {
+        "teamId": 5,
+        "totalPoints": 144.52
+      },
+      "winner": "AWAY"
+    },
+    {
+      "matchupPeriodId": 4,
+      "home": {
+        "teamId": 7,
+        "totalPoints": 141.78
+      },
+      "away": {
+        "teamId": 2,
+        "totalPoints": 137.92
+      },
+      "winner": "HOME"
+    },
+    {
+      "matchupPeriodId": 4,
+      "home": {
+        "teamId": 6,
+        "totalPoints": 103.96
+      },
+      "away": {
+        "teamId": 4,
+        "totalPoints": 170
+      },
+      "winner": "AWAY"
+    },
+    {
+      "matchupPeriodId": 5,
+      "home": {
+        "teamId": 1,
+        "totalPoints": 127.34
+      },
+      "away": {
+        "teamId": 4,
+        "totalPoints": 173.86
+      },
+      "winner": "AWAY"
+    },
+    {
+      "matchupPeriodId": 5,
+      "home": {
+        "teamId": 3,
+        "totalPoints": 165.68
+      },
+      "away": {
+        "teamId": 6,
+        "totalPoints": 112.62
+      },
+      "winner": "HOME"
+    },
+    {
+      "matchupPeriodId": 5,
+      "home": {
+        "teamId": 5,
+        "totalPoints": 152.84
+      },
+      "away": {
+        "teamId": 7,
+        "totalPoints": 88.86
+      },
+      "winner": "HOME"
+    },
+    {
+      "matchupPeriodId": 5,
+      "home": {
+        "teamId": 2,
+        "totalPoints": 133.68
+      },
+      "away": {
+        "teamId": 8,
+        "totalPoints": 160.76
+      },
+      "winner": "AWAY"
+    },
+    {
+      "matchupPeriodId": 6,
+      "home": {
+        "teamId": 1,
+        "totalPoints": 140.04
+      },
+      "away": {
+        "teamId": 2,
+        "totalPoints": 97.9
+      },
+      "winner": "HOME"
+    },
+    {
+      "matchupPeriodId": 6,
+      "home": {
+        "teamId": 3,
+        "totalPoints": 105.52
+      },
+      "away": {
+        "teamId": 4,
+        "totalPoints": 131.26
+      },
+      "winner": "AWAY"
+    },
+    {
+      "matchupPeriodId": 6,
+      "home": {
+        "teamId": 5,
+        "totalPoints": 141.22
+      },
+      "away": {
+        "teamId": 6,
+        "totalPoints": 156.4
+      },
+      "winner": "AWAY"
+    },
+    {
+      "matchupPeriodId": 6,
+      "home": {
+        "teamId": 7,
+        "totalPoints": 88.38
+      },
+      "away": {
+        "teamId": 8,
+        "totalPoints": 156.74
+      },
+      "winner": "AWAY"
+    },
+    {
+      "matchupPeriodId": 7,
+      "home": {
+        "teamId": 1,
+        "totalPoints": 145.76
+      },
+      "away": {
+        "teamId": 5,
+        "totalPoints": 115.88
+      },
+      "winner": "HOME"
+    },
+    {
+      "matchupPeriodId": 7,
+      "home": {
+        "teamId": 3,
+        "totalPoints": 106.06
+      },
+      "away": {
+        "teamId": 8,
+        "totalPoints": 153.74
+      },
+      "winner": "AWAY"
+    },
+    {
+      "matchupPeriodId": 7,
+      "home": {
+        "teamId": 7,
+        "totalPoints": 119.46
+      },
+      "away": {
+        "teamId": 4,
+        "totalPoints": 151.7
+      },
+      "winner": "AWAY"
+    },
+    {
+      "matchupPeriodId": 7,
+      "home": {
+        "teamId": 6,
+        "totalPoints": 147.36
+      },
+      "away": {
+        "teamId": 2,
+        "totalPoints": 102.08
+      },
+      "winner": "HOME"
+    },
+    {
+      "matchupPeriodId": 8,
+      "home": {
+        "teamId": 1,
+        "totalPoints": 168.1
+      },
+      "away": {
+        "teamId": 6,
+        "totalPoints": 197.16
+      },
+      "winner": "AWAY"
+    },
+    {
+      "matchupPeriodId": 8,
+      "home": {
+        "teamId": 3,
+        "totalPoints": 154.76
+      },
+      "away": {
+        "teamId": 7,
+        "totalPoints": 153.82
+      },
+      "winner": "HOME"
+    },
+    {
+      "matchupPeriodId": 8,
+      "home": {
+        "teamId": 5,
+        "totalPoints": 103.78
+      },
+      "away": {
+        "teamId": 2,
+        "totalPoints": 111
+      },
+      "winner": "AWAY"
+    },
+    {
+      "matchupPeriodId": 8,
+      "home": {
+        "teamId": 4,
+        "totalPoints": 134.96
+      },
+      "away": {
+        "teamId": 8,
+        "totalPoints": 151.86
+      },
+      "winner": "AWAY"
+    },
+    {
+      "matchupPeriodId": 9,
+      "home": {
+        "teamId": 1,
+        "totalPoints": 137.8
+      },
+      "away": {
+        "teamId": 3,
+        "totalPoints": 126.26
+      },
+      "winner": "HOME"
+    },
+    {
+      "matchupPeriodId": 9,
+      "home": {
+        "teamId": 5,
+        "totalPoints": 86.68
+      },
+      "away": {
+        "teamId": 8,
+        "totalPoints": 141.36
+      },
+      "winner": "AWAY"
+    },
+    {
+      "matchupPeriodId": 9,
+      "home": {
+        "teamId": 7,
+        "totalPoints": 117.14
+      },
+      "away": {
+        "teamId": 6,
+        "totalPoints": 127.78
+      },
+      "winner": "AWAY"
+    },
+    {
+      "matchupPeriodId": 9,
+      "home": {
+        "teamId": 4,
+        "totalPoints": 115.62
+      },
+      "away": {
+        "teamId": 2,
+        "totalPoints": 135.02
+      },
+      "winner": "AWAY"
+    },
+    {
+      "matchupPeriodId": 10,
+      "home": {
+        "teamId": 1,
+        "totalPoints": 154.42
+      },
+      "away": {
+        "teamId": 7,
+        "totalPoints": 161.22
+      },
+      "winner": "AWAY"
+    },
+    {
+      "matchupPeriodId": 10,
+      "home": {
+        "teamId": 3,
+        "totalPoints": 184.56
+      },
+      "away": {
+        "teamId": 2,
+        "totalPoints": 81.18
+      },
+      "winner": "HOME"
+    },
+    {
+      "matchupPeriodId": 10,
+      "home": {
+        "teamId": 5,
+        "totalPoints": 127.72
+      },
+      "away": {
+        "teamId": 4,
+        "totalPoints": 106.48
+      },
+      "winner": "HOME"
+    },
+    {
+      "matchupPeriodId": 10,
+      "home": {
+        "teamId": 6,
+        "totalPoints": 144.96
+      },
+      "away": {
+        "teamId": 8,
+        "totalPoints": 155.04
+      },
+      "winner": "AWAY"
+    },
+    {
+      "matchupPeriodId": 11,
+      "home": {
+        "teamId": 1,
+        "totalPoints": 107.54
+      },
+      "away": {
+        "teamId": 2,
+        "totalPoints": 86.22
+      },
+      "winner": "HOME"
+    },
+    {
+      "matchupPeriodId": 11,
+      "home": {
+        "teamId": 3,
+        "totalPoints": 126.46
+      },
+      "away": {
+        "teamId": 4,
+        "totalPoints": 154.4
+      },
+      "winner": "AWAY"
+    },
+    {
+      "matchupPeriodId": 11,
+      "home": {
+        "teamId": 5,
+        "totalPoints": 156.96
+      },
+      "away": {
+        "teamId": 6,
+        "totalPoints": 175.3
+      },
+      "winner": "AWAY"
+    },
+    {
+      "matchupPeriodId": 11,
+      "home": {
+        "teamId": 7,
+        "totalPoints": 159.5
+      },
+      "away": {
+        "teamId": 8,
+        "totalPoints": 128.04
+      },
+      "winner": "HOME"
+    },
+    {
+      "matchupPeriodId": 12,
+      "home": {
+        "teamId": 1,
+        "totalPoints": 119.08
+      },
+      "away": {
+        "teamId": 5,
+        "totalPoints": 145.78
+      },
+      "winner": "AWAY"
+    },
+    {
+      "matchupPeriodId": 12,
+      "home": {
+        "teamId": 3,
+        "totalPoints": 168.64
+      },
+      "away": {
+        "teamId": 8,
+        "totalPoints": 148.56
+      },
+      "winner": "HOME"
+    },
+    {
+      "matchupPeriodId": 12,
+      "home": {
+        "teamId": 7,
+        "totalPoints": 147.88
+      },
+      "away": {
+        "teamId": 4,
+        "totalPoints": 150.46
+      },
+      "winner": "AWAY"
+    },
+    {
+      "matchupPeriodId": 12,
+      "home": {
+        "teamId": 6,
+        "totalPoints": 148.7
+      },
+      "away": {
+        "teamId": 2,
+        "totalPoints": 118.86
+      },
+      "winner": "HOME"
+    },
+    {
+      "matchupPeriodId": 13,
+      "home": {
+        "teamId": 1,
+        "totalPoints": 130.4
+      },
+      "away": {
+        "teamId": 6,
+        "totalPoints": 157.22
+      },
+      "winner": "AWAY"
+    },
+    {
+      "matchupPeriodId": 13,
+      "home": {
+        "teamId": 3,
+        "totalPoints": 169.48
+      },
+      "away": {
+        "teamId": 7,
+        "totalPoints": 164.08
+      },
+      "winner": "HOME"
+    },
+    {
+      "matchupPeriodId": 13,
+      "home": {
+        "teamId": 5,
+        "totalPoints": 146.22
+      },
+      "away": {
+        "teamId": 2,
+        "totalPoints": 160.76
+      },
+      "winner": "AWAY"
+    },
+    {
+      "matchupPeriodId": 13,
+      "home": {
+        "teamId": 4,
+        "totalPoints": 124.7
+      },
+      "away": {
+        "teamId": 8,
+        "totalPoints": 136.06
+      },
+      "winner": "AWAY"
+    },
+    {
+      "matchupPeriodId": 14,
+      "home": {
+        "teamId": 1,
+        "totalPoints": 139.74
+      },
+      "away": {
+        "teamId": 8,
+        "totalPoints": 91.04
+      },
+      "winner": "HOME"
+    },
+    {
+      "matchupPeriodId": 14,
+      "home": {
+        "teamId": 3,
+        "totalPoints": 127.04
+      },
+      "away": {
+        "teamId": 5,
+        "totalPoints": 140.14
+      },
+      "winner": "AWAY"
+    },
+    {
+      "matchupPeriodId": 14,
+      "home": {
+        "teamId": 7,
+        "totalPoints": 133.94
+      },
+      "away": {
+        "teamId": 2,
+        "totalPoints": 115.72
+      },
+      "winner": "HOME"
+    },
+    {
+      "matchupPeriodId": 14,
+      "home": {
+        "teamId": 6,
+        "totalPoints": 126.08
+      },
+      "away": {
+        "teamId": 4,
+        "totalPoints": 122.72
+      },
+      "winner": "HOME"
+    },
+    {
+      "matchupPeriodId": 15,
+      "home": {
+        "teamId": 1,
+        "totalPoints": 103.62
+      },
+      "away": {
+        "teamId": 3,
+        "totalPoints": 93.16
+      },
+      "winner": "HOME"
+    },
+    {
+      "matchupPeriodId": 15,
+      "home": {
+        "teamId": 5,
+        "totalPoints": 108.24
+      },
+      "away": {
+        "teamId": 8,
+        "totalPoints": 115.98
+      },
+      "winner": "AWAY"
+    },
+    {
+      "matchupPeriodId": 15,
+      "home": {
+        "teamId": 7,
+        "totalPoints": 182.42
+      },
+      "away": {
+        "teamId": 6,
+        "totalPoints": 127.62
+      },
+      "winner": "HOME"
+    },
+    {
+      "matchupPeriodId": 15,
+      "home": {
+        "teamId": 4,
+        "totalPoints": 150.46
+      },
+      "away": {
+        "teamId": 2,
+        "totalPoints": 121.38
+      },
+      "winner": "HOME"
+    },
+    {
+      "matchupPeriodId": 16,
+      "home": {
+        "teamId": 1,
+        "totalPoints": 112.78
+      },
+      "away": {
+        "teamId": 6,
+        "totalPoints": 155.04
+      },
+      "winner": "AWAY"
+    },
+    {
+      "matchupPeriodId": 16,
+      "home": {
+        "teamId": 7,
+        "totalPoints": 151.8
+      },
+      "away": {
+        "teamId": 8,
+        "totalPoints": 145.66
+      },
+      "winner": "HOME"
+    },
+    {
+      "matchupPeriodId": 16,
+      "home": {
+        "teamId": 3,
+        "totalPoints": 195.72
+      },
+      "away": {
+        "teamId": 5,
+        "totalPoints": 128.06
+      },
+      "winner": "HOME"
+    },
+    {
+      "matchupPeriodId": 16,
+      "home": {
+        "teamId": 4,
+        "totalPoints": 172.18
+      },
+      "away": {
+        "teamId": 2,
+        "totalPoints": 89.8
+      },
+      "winner": "HOME"
+    },
+    {
+      "matchupPeriodId": 17,
+      "home": {
+        "teamId": 7,
+        "totalPoints": 157.92
+      },
+      "away": {
+        "teamId": 6,
+        "totalPoints": 152.38
+      },
+      "winner": "HOME"
+    },
+    {
+      "matchupPeriodId": 17,
+      "home": {
+        "teamId": 1,
+        "totalPoints": 82.64
+      },
+      "away": {
+        "teamId": 8,
+        "totalPoints": 166.82
+      },
+      "winner": "AWAY"
+    },
+    {
+      "matchupPeriodId": 17,
+      "home": {
+        "teamId": 3,
+        "totalPoints": 138.7
+      },
+      "away": {
+        "teamId": 4,
+        "totalPoints": 131.96
+      },
+      "winner": "HOME"
+    },
+    {
+      "matchupPeriodId": 17,
+      "home": {
+        "teamId": 5,
+        "totalPoints": 148.84
+      },
+      "away": {
+        "teamId": 2,
+        "totalPoints": 113.4
+      },
+      "winner": "HOME"
+    }
+  ]
+}
