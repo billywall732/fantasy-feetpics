@@ -2262,7 +2262,7 @@ function buildHeadlines() {
   $('ticker').innerHTML = items + (reduceMotion ? '' : items.replace(/<span>/g, '<span aria-hidden="true">'));
 }
 
-$('footer').innerHTML = `<span>🏈 Data from ESPN fantasy league${L.leagueId ? ` ${esc(L.leagueId)}` : ''} · Standings as of ${fmtDate(L.updated)}</span><span>Page built ${fmtDate(L.built)}</span>${D.public ? '<span class="privacy-note">Team names changed and last names left out for privacy</span>' : ''}`;
+$('footer').innerHTML = `<span>🏈 Data from ESPN fantasy league${L.leagueId ? ` ${esc(L.leagueId)}` : ''} · Standings as of ${fmtDate(L.updated)}</span><span>Page built ${fmtDate(L.built)}</span>${D.public ? '<span class="privacy-note">Team names changed and last names left out for privacy · <a href="/privacy/">Privacy</a></span>' : ''}`;
 
 /* ---------- Stay current ----------
    Home-screen apps and background tabs keep the page they first loaded. Whenever the site is opened or
