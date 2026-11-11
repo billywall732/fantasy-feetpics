@@ -7,3 +7,6 @@ site-public/
 # Cloudflare Worker local files (worker-refresh/); its secret lives with Cloudflare, never here
 .dev.vars
 .wrangler/
+
+# Full-size originals of the email pictures (notify-images/ holds the resized copies that get published)
+notify-images-originals/

@@ -1,9 +1,12 @@
-// Emails each manager when an ice is locked in for them: the picture, the reason and the deadline.
+// Emails each manager when an ice is locked in for them (the picture, the reason and the deadline),
+// and the manager with the week's highest score (a trophy picture and their score).
 //
 // Usage:
 //   node notify.mjs                     send new ices (only when NOTIFY_ENABLED=true; otherwise a dry run)
 //   node notify.mjs --dry-run           show what would be sent
-//   node notify.mjs --test you@x.com    send one sample of each kind (made-up data) to one address
+//   node notify.mjs --test you@x.com    send one of each kind to one address: the latest real week's
+//                                       email when there is one (data/ice-events.json), else made-up data
+//   --kind highest|lowest|dud           with --test: only that kind
 //   --state <file>                      ids already sent (refresh.sh passes the copy from gh-pages)
 //
 // Reads data/ice-events.json (written by build.mjs) and writes site/notified.json, which is published
@@ -18,6 +21,7 @@ const value = (name) => (args.includes(name) ? args[args.indexOf(name) + 1] : nu
 const DRY = flag('--dry-run');
 const TEST_TO = value('--test');
 const STATE = value('--state');
+const ONLY_KIND = value('--kind');
 const SITE_ROOT = 'https://offthewall.dev/fantasy-feetpics/';
 const SITE_URL = `${SITE_ROOT}app.html`;
 const here = (p) => new URL(p, import.meta.url);
@@ -38,6 +42,7 @@ function pickImage(kind) {
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const fmtPts = (n) => Number(n).toFixed(2);
 function compose(ev) {
+  if (ev.kind === 'highest') return composeHighest(ev);
   const first = ev.owner.split(' ')[0] || ev.owner;
   const count = ev.ices > 1 ? `${ev.ices} ices` : 'an ice';
   const reason = ev.kind === 'lowest'
@@ -69,6 +74,38 @@ function compose(ev) {
   return { subject, html, text, image };
 }
 
+// The week's top score: a congratulations, not an ice (no deadline)
+function composeHighest(ev) {
+  const first = ev.owner.split(' ')[0] || ev.owner;
+  const subject = `🏆 Highest score of week ${ev.week}: ${fmtPts(ev.score)} points`;
+  const line = `${ev.team} put up ${fmtPts(ev.score)} points in week ${ev.week}, the most in the league.`;
+  const image = pickImage('highest');
+  const html = `<!doctype html><html><body style="margin:0;padding:0;background:#f4efe2;font-family:Arial,Helvetica,sans-serif;color:#0c1810">
+  <div style="max-width:520px;margin:0 auto;padding:16px">
+    <div style="background:#04110b;color:#f2f8f3;border-radius:12px 12px 0 0;padding:16px 20px">
+      <div style="font-size:12px;letter-spacing:2px;color:#e8c766;font-weight:bold">FANTASY FEETPICS · WEEK ${ev.week}</div>
+      <div style="font-size:26px;font-weight:900;margin-top:4px">🏆 TOP SCORE OF THE WEEK</div>
+    </div>
+    <div style="background:#ffffff;border-radius:0 0 12px 12px;padding:20px">
+      ${image ? `<img src="${image.url}" alt="" width="480" style="display:block;width:100%;max-width:480px;height:auto;border-radius:10px;margin:0 auto 18px">` : ''}
+      <p style="font-size:18px;margin:0 0 10px"><b>Nice week, ${esc(first)}.</b></p>
+      <p style="font-size:16px;line-height:1.5;margin:0 0 14px">${esc(line)}</p>
+      <div style="background:#fff6dc;border-left:4px solid #d4a017;border-radius:8px;padding:12px 14px;font-size:16px;margin:0 0 18px">
+        🏆 <b>${fmtPts(ev.score)} points</b>: highest score of week ${ev.week}${ev.playoff ? ' (playoffs)' : ''}
+      </div>
+      <a href="${SITE_URL}#standings" style="display:inline-block;background:#0d8a48;color:#ffffff;text-decoration:none;font-weight:bold;padding:12px 18px;border-radius:999px">See the standings</a>
+    </div>
+    <p style="font-size:11px;color:#5a685f;text-align:center;margin:14px 0 0">Sent automatically by the Fantasy Feetpics site.</p>
+  </div></body></html>`;
+  const text = `Nice week, ${first}.
+
+${line}
+Highest score of week ${ev.week}: ${fmtPts(ev.score)} points.
+
+Standings: ${SITE_URL}#standings`;
+  return { subject, html, text, image };
+}
+
 // ---------- Sending ----------
 let transport = null;
 function mailer() {
@@ -81,19 +118,25 @@ const BCC = env.NOTIFY_BCC || env.GMAIL_USER;
 async function send(to, ev) {
   const m = compose(ev);
   const bcc = BCC && BCC.toLowerCase() !== to.toLowerCase() ? BCC : undefined;
-  await mailer().sendMail({ from: `"Feetpics Ice Bot" <${env.GMAIL_USER}>`, to, bcc, subject: m.subject, html: m.html, text: m.text });
+  const from = ev.kind === 'highest' ? 'Feetpics Score Bot' : 'Feetpics Ice Bot';
+  await mailer().sendMail({ from: `"${from}" <${env.GMAIL_USER}>`, to, bcc, subject: m.subject, html: m.html, text: m.text });
   return m.subject;
 }
 
-// ---------- Test mode: one made-up sample of each kind ----------
+// ---------- Test mode: one of each kind, to one address ----------
+// Uses the latest real event of each kind (the email that manager gets) when data/ice-events.json
+// has one, otherwise made-up data. Either way it goes only to the --test address.
 if (TEST_TO) {
   const deadline = Date.now() + 3 * 86400e3;
   const deadlineText = new Date(deadline).toLocaleString('en-US', { timeZone: 'America/New_York', weekday: 'long', month: 'short', day: 'numeric' }) + ', 8:00 PM ET';
-  const base = { season: 2026, week: 99, owner: 'Test Manager', team: 'Test Team (sample)', deadline, deadlineText, ices: 1, playoff: false };
+  const base = { season: 2026, week: 10, owner: 'Alex Morgan', team: 'Gridiron Gang', deadline, deadlineText, ices: 1, playoff: false };
+  const real = existsSync(here('data/ice-events.json')) ? JSON.parse(readFileSync(here('data/ice-events.json'), 'utf8')) : [];
+  const latest = (kind) => real.filter((e) => e.kind === kind).sort((a, b) => b.week - a.week)[0];
   const samples = [
-    { ...base, id: 'test-dud', kind: 'dud', player: 'Sample Player', pos: 'WR', pro: 'NYJ', pts: 0 },
-    { ...base, id: 'test-lowest', kind: 'lowest', score: 64.2 },
-  ];
+    latest('dud') ?? { ...base, id: 'test-dud', kind: 'dud', player: 'Jordan Reyes', pos: 'WR', pro: 'NYJ', pts: 0 },
+    latest('lowest') ?? { ...base, id: 'test-lowest', kind: 'lowest', score: 64.2 },
+    latest('highest') ?? { ...base, id: 'test-highest', kind: 'highest', score: 148.36 },
+  ].filter((ev) => !ONLY_KIND || ev.kind === ONLY_KIND);
   for (const ev of samples) {
     const subject = await send(TEST_TO, ev);
     console.log(`Sent test to ${TEST_TO}: ${subject}${compose(ev).image ? '' : ' (no picture: add one to notify-images/' + ev.kind + '/)'}`);

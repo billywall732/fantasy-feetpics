@@ -558,6 +558,8 @@ for (const [spKey, games] of Object.entries(box)) {
     return { teamId: s.teamId, score: r2(starters.reduce((a, e) => a + pts(e), 0)), duds: starters.filter((e) => pts(e) <= 0).map(who) };
   });
   const entries = [];
+  // The week's top score (ties all count), for the "highest score of the week" email. Not an ice.
+  const top = final && scored.length ? scored.filter((s) => s.score === Math.max(...scored.map((x) => x.score))).map((s) => ({ teamId: s.teamId, score: s.score })) : [];
   if (final) {
     const low = Math.min(...scored.map((s) => s.score));
     for (const s of scored) {
@@ -610,13 +612,15 @@ for (const [spKey, games] of Object.entries(box)) {
     final,
     deadline: deadlineFor(sp),
     owed: Object.values(byTeam).sort((a, b) => b.ices - a.ices),
+    top,
     live,
   });
 }
 for (const t of teams) for (const w of doneWeeks) t.weeks[w].ices = iceWeeks.find((x) => x.week === w)?.owed.find((o) => o.teamId === t.id)?.ices ?? 0;
 
 // Locked-in ices that aren't due yet, for notify.mjs to email (never published: owner names stay in data/).
-// Duds lock when the player's game ends; the lowest score locks when the week is final.
+// Duds lock when the player's game ends; the lowest score locks when the week is final. The week's
+// highest score is emailed in the same window (from the week going final until the next kickoff).
 {
   const deadlineText = (ms) => new Date(ms).toLocaleString('en-US', { timeZone: ET, weekday: 'long', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) + ' ET';
   const events = new Map();
@@ -635,6 +639,10 @@ for (const t of teams) for (const w of doneWeeks) t.weeks[w].ices = iceWeeks.fin
         if (r.kind === 'lowest') events.set(`${SEASON}-w${wk.week}-lowest-${o.teamId}`, { id: `${SEASON}-w${wk.week}-lowest-${o.teamId}`, kind: 'lowest', score: r.score, ...base(o.teamId) });
         else if (r.kind === 'dud') dud(o.teamId, r);
       }
+    }
+    for (const t of wk.top || []) {
+      const id = `${SEASON}-w${wk.week}-highest-${t.teamId}`;
+      events.set(id, { id, kind: 'highest', score: t.score, ...base(t.teamId) });
     }
     // Emails can't be taken back, so mid-week duds wait until well after the game (overtime, delays).
     for (const r of wk.live?.locked || []) {
@@ -998,7 +1006,7 @@ const rules = (() => {
 
 // Ice email pictures (notify-images/<kind>/) are published with each site as ice-images/<kind>/, so
 // real emails link to them at a full https address (notify.mjs) and the on-site samples can show them.
-const ICE_IMAGE_KINDS = ['lowest', 'dud'];
+const ICE_IMAGE_KINDS = ['lowest', 'dud', 'highest'];
 const iceImageFiles = (kind) => { const dir = new URL(`notify-images/${kind}/`, import.meta.url); return existsSync(dir) ? readdirSync(dir).filter((f) => /\.(jpe?g|png|gif|webp)$/i.test(f)).sort() : []; };
 
 // ---------- Output ----------
