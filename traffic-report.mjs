@@ -154,26 +154,33 @@ const pageCell = (n) => {
   const a = 0.18 + 0.82 * (n / maxPageCell);
   return `<td style="padding:6px 2px;text-align:center;font-weight:bold;border:2px solid #fff;background:rgba(13,138,72,${a.toFixed(2)});color:${a > 0.6 ? '#fff' : '#0c1810'}">${n}</td>`;
 };
-const tile = (label, value, sub) => `<td style="padding:6px" width="25%"><div style="background:#f4f8f5;border-radius:10px;padding:12px 10px">
-  <div style="font-size:10px;letter-spacing:1.5px;color:#5a685f;font-weight:bold;text-transform:uppercase">${label}</div>
-  <div style="font-size:26px;font-weight:900;color:#0c1810;line-height:1.2">${value}</div><div style="font-size:12px;color:#5a685f">${sub}</div></div></td>`;
+// Summary boxes: a 2 x 2 grid of equal boxes with one fixed size per line. Four across was too
+// cramped on a phone (each box wrapped differently and sized itself), and iPhone Mail enlarged the
+// small text by different amounts, so the boxes came out in different sizes. The background is on
+// the cell itself, so the two boxes in a row always share one height.
+const tile = (label, value, sub) => `<td width="50%" valign="top" style="background:#f4f8f5;border-radius:10px;padding:12px 14px">
+  <div style="font-size:11px;line-height:14px;letter-spacing:1.5px;color:#5a685f;font-weight:bold;text-transform:uppercase;white-space:nowrap">${label}</div>
+  <div style="font-size:24px;line-height:30px;font-weight:900;color:#0c1810">${value}</div>
+  <div style="font-size:12px;line-height:16px;color:#5a685f">${sub}</div></td>`;
+const tiles = (a, b, c, d) => `<table role="presentation" width="100%" cellspacing="8" cellpadding="0" style="border-collapse:separate;table-layout:fixed"><tr>${a}${b}</tr><tr>${c}${d}</tr></table>`;
 const listRows = (items) => items.length ? items.map((it) => `<tr><td style="padding:6px 0;border-bottom:1px solid #edf2ee;font-size:14px">${esc(it.name)}</td><td style="padding:6px 0;border-bottom:1px solid #edf2ee;font-size:14px;text-align:right;font-weight:bold">${it.count}</td></tr>`).join('') : '<tr><td style="color:#5a685f;font-size:13px">No data this week.</td></tr>';
 const first = daily[0], last = daily.at(-1);
 const subject = `📊 Fantasy Feetpics traffic: ${weekTotal} visits (${first.date}–${last.date})`;
 
-const html = `<!doctype html><html><body style="margin:0;padding:0;background:#eef3ee;font-family:Arial,Helvetica,sans-serif;color:#0c1810">
+// The head tells phones to show the email at its real size: without it, iPhone Mail rescales text
+const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="x-apple-disable-message-reformatting">
+<style>body{-webkit-text-size-adjust:100%;text-size-adjust:100%}</style></head><body style="margin:0;padding:0;background:#eef3ee;font-family:Arial,Helvetica,sans-serif;color:#0c1810;-webkit-text-size-adjust:100%">
 <div style="max-width:620px;margin:0 auto;padding:16px">
   <div style="background:#04110b;color:#f2f8f3;border-radius:12px 12px 0 0;padding:18px 20px">
     <div style="font-size:12px;letter-spacing:2px;color:#a9c2b1;font-weight:bold">FANTASY FEETPICS · WEEKLY TRAFFIC</div>
     <div style="font-size:24px;font-weight:900;margin-top:4px">${first.label} ${first.date} – ${last.label} ${last.date}</div>
   </div>
   <div style="background:#ffffff;border-radius:0 0 12px 12px;padding:16px 14px">
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
-      ${tile('Visits', weekTotal, change == null ? 'first week tracked' : `${change >= 0 ? '▲' : '▼'} ${Math.abs(change)}% vs last week`)}
-      ${tile('Daily avg', (weekTotal / 7).toFixed(1), 'visits per day')}
-      ${tile('Busiest day', weekTotal ? busiestDay.label : '—', weekTotal ? `${busiestDay.total} visits` : '')}
-      ${tile('Peak hour', weekTotal ? hourLabel(busiestHour) : '—', weekTotal ? `${byHour[busiestHour]} visits (ET)` : '')}
-    </tr></table>
+    ${tiles(
+      tile('Visits', weekTotal, change == null ? 'first week tracked' : `${change >= 0 ? '▲' : '▼'} ${Math.abs(change)}% vs last week`),
+      tile('Daily avg', (weekTotal / 7).toFixed(1), 'visits per day'),
+      tile('Busiest day', weekTotal ? busiestDay.label : '—', weekTotal ? `${busiestDay.total} visits` : ''),
+      tile('Peak hour', weekTotal ? hourLabel(busiestHour) : '—', weekTotal ? `${byHour[busiestHour]} visits (ET)` : ''))}
 
     <h3 style="margin:18px 6px 8px;font-size:16px">Visits by day</h3>
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="padding:0 6px">
