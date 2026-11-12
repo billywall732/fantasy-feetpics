@@ -161,6 +161,9 @@ button { font: inherit; color: inherit; }
 
 /* Ticker */
 .ticker { position: relative; background: linear-gradient(90deg, var(--coral), var(--gold)); color: #1a0d00; font-weight: 700; font-size: 14px; overflow: hidden; white-space: nowrap; }
+/* The headlines fade out at the right edge instead of being sliced mid-letter (the strip's own gold,
+   so the strip itself doesn't fade) */
+.ticker::after { content: ''; position: absolute; top: 0; right: 0; bottom: 0; width: 64px; z-index: 1; pointer-events: none; background: linear-gradient(90deg, transparent, var(--gold)); }
 .ticker .label { position: absolute; left: 0; top: 0; bottom: 0; z-index: 1; display: flex; align-items: center; gap: 6px; padding: 0 14px; background: #1a0d00; color: #ffd75e; font-family: var(--font-display); font-size: 16px; letter-spacing: .08em; text-transform: uppercase; }
 .ticker .label i { width: 8px; height: 8px; border-radius: 50%; background: #ff4b2b; animation: pulse 1.4s ease-in-out infinite; }
 .ticker .track { display: inline-flex; gap: 40px; padding: 8px 0 8px 110px; animation: marquee 95s linear infinite; will-change: transform; }
