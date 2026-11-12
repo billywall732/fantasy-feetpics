@@ -1,0 +1,33 @@
+# Emails a weekly stats recap for offthewall.dev (the whole site) every Monday morning: views by day,
+# top pages, outside referrers, devices and places. Reads the site's stats Worker (no GoatCounter key
+# needed here). Sent to league.config.json -> siteReportTo (or trafficReportTo). Needs the Gmail secrets.
+name: Off the Wall weekly stats
+
+on:
+  schedule:
+    - cron: '0 15 * * 1'   # Mondays 15:00 UTC = 7am Pacific (8am in summer)
+  workflow_dispatch:        # "Run workflow" button to send one now
+
+permissions:
+  contents: read
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --silent --no-audit --no-fund
+      - name: Send the report
+        run: node site-report.mjs
+        env:
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          # env.mjs expects the league settings too
+          ESPN_S2: ${{ secrets.ESPN_S2 }}
+          ESPN_SWID: ${{ secrets.ESPN_SWID }}
+          LEAGUE_ID: ${{ vars.LEAGUE_ID }}
+          SEASON: ${{ vars.SEASON }}
