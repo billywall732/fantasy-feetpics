@@ -17,9 +17,32 @@ const TO = args.includes('--to') ? args[args.indexOf('--to') + 1] : config.traff
 const SITE = 'fantasy';
 const API = `https://${SITE}.goatcounter.com/api/v0`;
 const ET = 'America/New_York';
+// The GoatCounter account's own time zone (Settings → Time zone). Its per-day and per-hour counts
+// come in this zone. It used to be read from the API's /me, which GoatCounter removed in Nov 2026
+// (it now answers 404, which broke this report); /me is still tried in case it comes back.
+const ACCOUNT_TZ = 'America/Los_Angeles';
+const DASHBOARD = 'https://offthewall.dev/stats/#fantasy'; // the site's own stats page, on the league tab
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 if (!env.GOATCOUNTER_TOKEN) { console.error('GOATCOUNTER_TOKEN is not set.'); process.exit(1); }
+
+// If anything below fails, say so by email (the report would otherwise just stop arriving), then
+// still exit with an error so the GitHub Actions run shows red.
+process.on('uncaughtException', async (err) => {
+  console.error(err);
+  if (!DRY && TO && env.GMAIL_USER && env.GMAIL_APP_PASSWORD) {
+    try {
+      const mail = nodemailer.createTransport({ service: 'gmail', auth: { user: env.GMAIL_USER, pass: env.GMAIL_APP_PASSWORD.replace(/\s+/g, '') } });
+      await mail.sendMail({
+        from: `"Feetpics Site Stats" <${env.GMAIL_USER}>`, to: TO,
+        subject: '⚠️ The weekly traffic report failed',
+        text: `This week's traffic report couldn't be made:\n\n${err?.message || err}\n\nThe run's full log is on GitHub: fantasy-feetpics → Actions → Weekly traffic report.\nOnce it's fixed, "Run workflow" there sends the report.`,
+      });
+      console.error(`Sent a failure notice to ${TO}`);
+    } catch (e) { console.error('Could not send the failure notice:', e.message); }
+  }
+  process.exit(1);
+});
 
 // ---------- Date range: the 7 full Eastern days before today (run on Wednesday → Wed..Tue) ----------
 const etParts = (ms) => Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: ET, year: 'numeric', month: '2-digit', day: '2-digit', hour: 'numeric', hourCycle: 'h23', weekday: 'short' })
@@ -33,18 +56,24 @@ for (let i = 14; i >= 8; i--) prevKeys.push(etKey(Date.parse(today + 'T12:00:00Z
 
 // Ask for a window a day wider than both Eastern weeks, to cover the time-zone shift.
 const utcDay = (key, offset) => new Date(Date.parse(key + 'T00:00:00Z') + offset * 86400e3).toISOString().slice(0, 10);
+// GoatCounter allows only a few requests a second: when it says "429 Too Many Requests", wait as
+// long as it asks and try again (like the site's stats Worker).
 async function api(path, params) {
   const url = `${API}${path}?${new URLSearchParams(params)}`;
-  const res = await fetch(url, { headers: { Authorization: `Bearer ${env.GOATCOUNTER_TOKEN}`, 'Content-Type': 'application/json' } });
-  if (!res.ok) throw new Error(`GoatCounter ${res.status} for ${path}: ${await res.text()}`);
-  return res.json();
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${env.GOATCOUNTER_TOKEN}`, 'Content-Type': 'application/json' } });
+    if (res.status === 429) { await new Promise((r) => setTimeout(r, Math.min(10, Number(res.headers.get('X-Rate-Limit-Reset')) || 1) * 1000 + 200)); continue; }
+    if (!res.ok) throw new Error(`GoatCounter ${res.status} for ${path}: ${await res.text()}`);
+    return res.json();
+  }
+  throw new Error(`GoatCounter kept saying 429 (too many requests) for ${path}`);
 }
 const span = { start: utcDay(prevKeys[0], -1), end: utcDay(dayKeys.at(-1), 1) };
 
 // ---------- Visits by Eastern day and hour ----------
 // GoatCounter reports days and hours in the account's own time zone (e.g. "US.America/Los_Angeles").
-const me = await api('/me', {});
-const GC_TZ = String(me.user?.settings?.timezone || 'UTC').split('.').pop();
+const me = await api('/me', {}).catch(() => null); // gone since Nov 2026; see ACCOUNT_TZ
+const GC_TZ = String(me?.user?.settings?.timezone || ACCOUNT_TZ).split('.').pop();
 const tzOffset = (ms, tz) => {
   const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: tz, year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', hourCycle: 'h23' })
     .formatToParts(new Date(ms)).map((x) => [x.type, Number(x.value)]));
@@ -55,7 +84,8 @@ const fromZone = (day, hour) => { const guess = Date.parse(`${day}T${String(hour
 // Page views only: the site's counter (offthewall.dev/shared/count.js) also sends aggregate events
 // (device and browser, entry, time on page, exit), which aren't visits. So the totals are built
 // from the per-page counts, leaving events out, rather than from GoatCounter's overall total.
-const hits = await api('/stats/hits', { ...span, limit: 100 }).catch(() => ({ hits: [] }));
+// No .catch here: if the counts can't be read, fail (and say so) rather than email "0 visits".
+const hits = await api('/stats/hits', { ...span, limit: 100 });
 const views = (hits.hits || []).filter((h) => !h.event);
 const grid = {}; // 'YYYY-MM-DD' (ET) -> [24]
 for (const h of views) for (const d of h.stats || []) {
@@ -101,7 +131,10 @@ const pageRows = views.map((h) => {
   return { name: h.path === '/cover' ? 'Cover page' : h.title || h.path, path: h.path, perDay, total: sum(perDay), peak };
 }).filter((p) => p.total > 0).sort((a, b) => b.total - a.total);
 const pages = pageRows.map((p) => ({ name: p.name, count: p.total }));
-const referrers = (refs.stats || []).map((r) => ({ name: r.name || '(direct / unknown)', count: r.count })).filter((r) => r.count > 0);
+// Outside sites only. GoatCounter's referrer counts include the counter's background events
+// (device, time on page...), so its "direct" number runs far above the page views; leave it out
+// rather than show a total that doesn't match.
+const referrers = (refs.stats || []).filter((r) => r.name && r.count > 0).map((r) => ({ name: r.name, count: r.count }));
 
 // ---------- Email ----------
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -171,11 +204,13 @@ const html = `<!doctype html><html><body style="margin:0;padding:0;background:#e
       </tr>`).join('')}
     </table>` : '<p style="margin:0 6px;color:#5a685f;font-size:13px">No page views this week.</p>'}
 
-    <h3 style="margin:22px 6px 6px;font-size:16px">Where visitors came from</h3>
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="padding:0 6px">${listRows(referrers)}</table>
+    <h3 style="margin:22px 6px 6px;font-size:16px">Outside sites that sent visitors</h3>
+    ${referrers.length
+      ? `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="padding:0 6px">${listRows(referrers)}</table>`
+      : '<p style="margin:0 6px;color:#5a685f;font-size:13px">None this week: everyone came straight in (a bookmark, a typed address, or a link in a text or app).</p>'}
 
     <div style="margin-top:20px;text-align:center">
-      <a href="https://${SITE}.goatcounter.com" style="display:inline-block;background:#0d8a48;color:#fff;text-decoration:none;font-weight:bold;padding:11px 18px;border-radius:999px">Open the full dashboard</a>
+      <a href="${DASHBOARD}" style="display:inline-block;background:#0d8a48;color:#fff;text-decoration:none;font-weight:bold;padding:11px 18px;border-radius:999px">Open the full dashboard</a>
     </div>
   </div>
   <p style="font-size:11px;color:#5a685f;text-align:center;margin:14px 0 0">Sent every Wednesday by the Fantasy Feetpics site. Counts come from GoatCounter (no cookies, no personal data).</p>
@@ -183,7 +218,7 @@ const html = `<!doctype html><html><body style="margin:0;padding:0;background:#e
 
 const text = `Fantasy Feetpics traffic, ${first.date} – ${last.date}\n\nVisits: ${weekTotal}${change == null ? '' : ` (${change >= 0 ? '+' : ''}${change}% vs last week)`}\n`
   + daily.map((d) => `${d.label} ${d.date}: ${d.total}`).join('\n')
-  + `\n\nPeak hour: ${weekTotal ? hourLabel(busiestHour) + ' ET' : '—'}\nVisits by page: ${pageRows.map((p) => `${p.name} ${p.total}`).join(', ') || '—'}\n\nDashboard: https://${SITE}.goatcounter.com`;
+  + `\n\nPeak hour: ${weekTotal ? hourLabel(busiestHour) + ' ET' : '—'}\nVisits by page: ${pageRows.map((p) => `${p.name} ${p.total}`).join(', ') || '—'}\n\nDashboard: ${DASHBOARD}`;
 
 if (DRY) {
   writeFileSync(new URL('data/traffic-report.html', import.meta.url), html);
