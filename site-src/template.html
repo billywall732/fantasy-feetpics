@@ -1063,8 +1063,13 @@ nav.tabs .tablist a .emoji { display: none; }
     <section class="view" id="view-awards" hidden>
       <div class="block">
         <div class="block-head">
-          <h2>Season awards</h2>
+          <h2 id="awards-title">Season awards</h2>
           <p id="awards-note"></p>
+        </div>
+        <!-- This season or every season: the same awards, different data -->
+        <div class="chips" id="awards-scope" role="group" aria-label="Awards for">
+          <button class="chip" aria-pressed="true" data-k="season">📅 This season</button>
+          <button class="chip" aria-pressed="false" data-k="all">🏛️ All-time</button>
         </div>
         <div class="award-rows" id="awards-grid"></div>
       </div>
@@ -2102,17 +2107,31 @@ const AWARD_ROWS = [
   ['Ice', ['Fastest ice', 'Slowest ice', 'Most ices']],
   ['Roster moves', ['Waiver wire addict', 'Used Car Salesman']],
 ];
+// "This season" or "All-time": the same awards, over this season or every season.
+let awardsScope = 'season';
+$('awards-scope').addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  awardsScope = b.dataset.k;
+  for (const c of $('awards-scope').children) c.setAttribute('aria-pressed', String(c.dataset.k === awardsScope));
+  renderAwards();
+});
 function renderAwards() {
-  $('awards-note').textContent = `Through week ${L.lastWeek}.`;
+  const all = awardsScope === 'all';
+  const list = all ? D.awardsAllTime : D.awards;
+  const first = D.seasons[0]?.year;
+  $('awards-title').textContent = all ? 'All-time awards' : 'Season awards';
+  $('awards-note').textContent = all ? `Regular season, every season since ${first}, including this one through week ${L.lastWeek}.` : `Through week ${L.lastWeek}.`;
+  // All-time awards name the team and owner of that season; season awards point at this season's team.
   const card = (a) => {
     const [icon, k] = AWARD_STYLE[a.title] || ['🏅', 'var(--accent)'];
     const desc = AWARD_DESC[a.title];
-    return `<div class="panel award lift" style="--k:${k}"><i class="emoji big-emoji" aria-hidden="true">${icon}</i><span>${esc(a.title)}</span>${desc ? `<em class="award-desc">${esc(desc)}</em>` : ''}<b>${esc(a.value)}</b><strong>${esc(T[a.teamId].name)}</strong><small>${esc(T[a.teamId].owner)} · ${esc(a.note)}</small></div>`;
+    const name = a.team ?? T[a.teamId].name, owner = a.owner ?? T[a.teamId].owner;
+    return `<div class="panel award lift" style="--k:${k}"><i class="emoji big-emoji" aria-hidden="true">${icon}</i><span>${esc(a.title)}</span>${desc ? `<em class="award-desc">${esc(desc)}</em>` : ''}<b>${esc(a.value)}</b><strong>${esc(name)}</strong><small>${esc(owner)} · ${esc(a.note)}</small></div>`;
   };
   const placed = new Set(AWARD_ROWS.flatMap(([, titles]) => titles));
-  const rows = [...AWARD_ROWS, ['More', D.awards.filter((a) => !placed.has(a.title)).map((a) => a.title)]];
+  const rows = [...AWARD_ROWS, ['More', list.filter((a) => !placed.has(a.title)).map((a) => a.title)]];
   $('awards-grid').innerHTML = rows.map(([label, titles]) => {
-    const cards = titles.map((t) => D.awards.find((a) => a.title === t)).filter(Boolean);
+    const cards = titles.map((t) => list.find((a) => a.title === t)).filter(Boolean);
     return cards.length ? `<div class="award-row"><h3 class="award-row-label">${esc(label)}</h3>
       <div class="award-row-cards" style="--n:${cards.length}">${cards.map(card).join('')}</div></div>` : '';
   }).join('');

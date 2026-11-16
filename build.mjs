@@ -867,6 +867,109 @@ const records = [
 
 // Each manager's highest and lowest weekly score, per season and all-time (regular season).
 const years = [...new Set(allGames.map((g) => g.year))].sort();
+
+// ---------- All-time awards ----------
+// The same awards as the season's, over every season (regular season). Scores, margins, luck and
+// schedule go back to the first season. Roster moves come from ESPN's per-season counts (ESPN seasons
+// only). Player weeks, lineups and ices need box scores and the ice log, which start this season, so
+// those cards show this season's winner and say so.
+const awardsAllTime = (() => {
+  const out = [];
+  const span = (ys) => (ys.length > 1 ? `${ys[0]}–${ys.at(-1)}` : String(ys[0]));
+  const latestTeam = (ownerId) => allTime[ownerId]?.names.at(-1).name ?? '';
+  const who = (ownerId, teamName) => ({ team: teamName ?? latestTeam(ownerId), owner: owners[ownerId]?.name ?? '' });
+  const vs = (x) => `${x.year} week ${x.week}`;
+  const add = (x, a) => x && out.push(a(x));
+  const lost = sides.filter((x) => x.opp.score > x.score), won = sides.filter((x) => x.won);
+  const awardsOf = (t) => awards.find((a) => a.title === t);
+
+  add(allHi, (x) => ({ title: 'Top score of the season', value: fmt(x.score), ...who(x.owner, x.team), note: `${vs(x)} vs ${x.opp.team}` }));
+  add(allLo, (x) => ({ title: 'Lowest score', value: fmt(x.score), ...who(x.owner, x.team), note: `${vs(x)} vs ${x.opp.team}` }));
+  add(allBlow, (x) => ({ title: 'Biggest blowout', value: `+${fmt(x.score - x.opp.score)}`, ...who(x.owner, x.team), note: `${vs(x)}: ${fmt(x.score)} to ${fmt(x.opp.score)} over ${x.opp.team}` }));
+  add(allClose, (x) => ({ title: 'Closest game', value: fmt(x.score - x.opp.score), ...who(x.owner, x.team), note: `${vs(x)}: edged ${x.opp.team}, ${fmt(x.score)} to ${fmt(x.opp.score)}` }));
+  add(by(lost, (x) => x.score), (x) => ({ title: 'Most points in a loss', value: fmt(x.score), ...who(x.owner, x.team), note: `${vs(x)}, lost to ${x.opp.team}` }));
+  add(by(won, (x) => -x.score), (x) => ({ title: 'Ugliest win', value: fmt(x.score), ...who(x.owner, x.team), note: `${vs(x)}: won with just ${fmt(x.score)}, beating ${x.opp.team} (${fmt(x.opp.score)})` }));
+
+  // Only tracked this season: this season's winner, labelled as such.
+  const thisSeason = (title, why) => {
+    const a = awardsOf(title);
+    if (a) out.push({ title, value: a.value, ...who(team[a.teamId].ownerId, team[a.teamId].name), note: `${SEASON} only (${why}) · ${a.note}` });
+  };
+  thisSeason('Best player week', 'box scores start then');
+  thisSeason('Worst starter week', 'box scores start then');
+  thisSeason('Coach of the year', 'box scores start then');
+  thisSeason(awardName('Bench Cuck'), 'box scores start then');
+
+  // Luck: actual wins against expected wins (the share of the league each weekly score beat), summed over every season.
+  const luck = {};
+  for (const y of years) for (const w of [...new Set(sides.filter((x) => x.year === y).map((x) => x.week))]) {
+    const wk = sides.filter((x) => x.year === y && x.week === w);
+    for (const x of wk) {
+      const others = wk.filter((o) => o.owner !== x.owner);
+      const beat = others.reduce((s, o) => s + (x.score > o.score ? 1 : x.score === o.score ? 0.5 : 0), 0);
+      const l = (luck[x.owner] ??= { owner: x.owner, w: 0, l: 0, t: 0, expected: 0, years: new Set() });
+      l.expected += beat / Math.max(1, others.length);
+      if (x.won) l.w++; else if (x.opp.score > x.score) l.l++; else l.t++;
+      l.years.add(y);
+    }
+  }
+  const luckList = Object.values(luck).map((l) => ({ ...l, luck: l.w + l.t / 2 - l.expected }));
+  const luckNote = (l) => `${l.w}-${l.l}${l.t ? `-${l.t}` : ''} actual vs ${r1(l.expected)} expected wins, ${span([...l.years].sort())}`;
+  add(by(luckList, (l) => l.luck), (l) => ({ title: 'Luckiest record', value: signed(l.luck), ...who(l.owner), note: luckNote(l) }));
+  add(by(luckList, (l) => -l.luck), (l) => ({ title: 'Unluckiest record', value: signed(l.luck), ...who(l.owner), note: luckNote(l) }));
+
+  // Schedule: every opponent's record for that season (once per game played), over every season.
+  // Ties count as half a win; ties between managers are broken by those opponents' points per game.
+  const seasonRec = {}; // `${year}:${ownerId}` -> { W, L, T, ppg }
+  for (const y of years) for (const t of seasonData(y).teams) {
+    const r = t.record.overall, g = Math.max(1, r.wins + r.losses + r.ties);
+    seasonRec[`${y}:${t.primaryOwner}`] = { W: r.wins, L: r.losses, T: r.ties, ppg: r.pointsFor / g };
+  }
+  const sosMap = {};
+  for (const x of sides) {
+    const o = seasonRec[`${x.year}:${x.opp.owner}`];
+    if (!o) continue;
+    const s = (sosMap[x.owner] ??= { owner: x.owner, W: 0, L: 0, T: 0, ppgSum: 0, games: 0 });
+    s.W += o.W; s.L += o.L; s.T += o.T; s.ppgSum += o.ppg; s.games++;
+  }
+  // Win % over a handful of games isn't a fair match for several seasons: count managers with at least
+  // half as many games as the longest-serving one.
+  const maxGames = Math.max(0, ...Object.values(sosMap).map((s) => s.games));
+  const sosAll = Object.values(sosMap).filter((s) => s.games >= maxGames / 2).map((s) => ({ ...s, pct: s.W + s.L + s.T ? (s.W + s.T / 2) / (s.W + s.L + s.T) : 0, ppg: r2(s.ppgSum / Math.max(1, s.games)) }));
+  const pct3 = (p) => p.toFixed(3).replace(/^0/, '');
+  for (const [title, dir] of [['Easiest schedule', 1], ['Hardest schedule', -1]]) {
+    const sorted = [...sosAll].sort((a, b) => dir * (a.pct - b.pct) || dir * (a.ppg - b.ppg));
+    const top = sorted[0];
+    if (!top) continue;
+    const shared = sorted.slice(1).filter((s) => Math.abs(s.pct - top.pct) < 1e-9 && s.ppg === top.ppg);
+    out.push({ title, value: pct3(top.pct), ...who(top.owner),
+      note: `Opponents ${top.W}-${top.L}${top.T ? `-${top.T}` : ''} over ${top.games} games, ${span(years)}, ${top.ppg} points a game${shared.length ? `; shared with ${shared.map((s) => owners[s.owner]?.name).join(', ')}` : ''}` });
+  }
+
+  // Ices: the ice log starts this season.
+  thisSeason('Fastest ice', 'the ice log starts then');
+  thisSeason('Slowest ice', 'the ice log starts then');
+  thisSeason('Most ices', 'the ice log starts then');
+
+  // Roster moves: ESPN's per-season counts for past ESPN seasons, plus this season's moves and trades.
+  const moveYears = [...new Set([...pastSeasons.filter((y) => existsSync(new URL(`data/season-${y}.json`, import.meta.url))), SEASON])].sort();
+  const adds = {}, deals = {};
+  for (const y of moveYears.filter((y) => y !== SEASON)) for (const t of seasonData(y).teams) {
+    adds[t.primaryOwner] = (adds[t.primaryOwner] ?? 0) + (t.transactionCounter?.acquisitions ?? 0);
+    deals[t.primaryOwner] = (deals[t.primaryOwner] ?? 0) + (t.transactionCounter?.trades ?? 0);
+  }
+  for (const t of teams) adds[t.ownerId] = (adds[t.ownerId] ?? 0) + t.moves;
+  for (const r of wire.teams) deals[team[r.teamId].ownerId] = (deals[team[r.teamId].ownerId] ?? 0) + r.trades;
+  const most = (m) => Object.entries(m).sort((a, b) => b[1] - a[1]);
+  const [addOwner, addN] = most(adds)[0] ?? [];
+  if (addN) out.push({ title: 'Waiver wire addict', value: String(addN), ...who(addOwner), note: `Waiver claims and free-agent pickups, ${span(moveYears)}` });
+  const dealers = most(deals), [dealOwner, dealN] = dealers[0] ?? [];
+  if (dealN) {
+    const tied = dealers.slice(1).filter(([, n]) => n === dealN).map(([o]) => owners[o]?.name);
+    out.push({ title: 'Used Car Salesman', value: String(dealN), ...who(dealOwner), note: `Most trades completed, ${span(moveYears)}${tied.length ? `; tied with ${tied.join(', ')}` : ''}` });
+  }
+  return out;
+})();
 const mark = (x) => x && { score: r2(x.score), week: x.week, year: x.year, team: x.team, opp: x.opp.team };
 const ownerHighLow = Object.keys(allTime).map((ownerId) => {
   const mine = sides.filter((x) => x.owner === ownerId);
@@ -1023,6 +1126,7 @@ const model = {
   moves: moves.slice(0, 40).map((m) => ({ ...m, adds: m.adds.map(({ name, pos }) => ({ name, pos })), drops: m.drops.map(({ name, pos }) => ({ name, pos })) })),
   wire,
   awards,
+  awardsAllTime,
   seasons,
   allTime: allTimeList,
   h2h,
