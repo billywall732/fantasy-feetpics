@@ -110,9 +110,13 @@ for (const m of doneMatchups) {
 
 // Optimal lineup for this league's slots: QB, 2 RB, 2 WR, TE, 2 FLEX (RB/WR/TE), D/ST, K.
 function optimal(entries) {
-  const pool = entries
-    .filter((e) => e.lineupSlotId !== 21)
-    .map((e) => ({ pos: POS[e.playerPoolEntry.player.defaultPositionId], pts: e.playerPoolEntry.appliedStatTotal || 0 }))
+  return bestLineup(entries.map((e) => ({ slot: e.lineupSlotId, pos: POS[e.playerPoolEntry.player.defaultPositionId], pts: e.playerPoolEntry.appliedStatTotal || 0 })));
+}
+// The same, from plain { slot, pos, pts } players (also used for past seasons' box scores in history/).
+function bestLineup(players) {
+  const pool = players
+    .filter((p) => p.slot !== 21)
+    .map((p) => ({ pos: p.pos, pts: p.pts }))
     .sort((a, b) => b.pts - a.pts);
   let total = 0;
   const take = (pred, n) => {
@@ -676,22 +680,32 @@ function parseCsv(text) {
 }
 const nameToOwner = new Map();
 for (const [id, names] of Object.entries(ownerNames)) for (const n of names) if (!nameToOwner.has(n.toLowerCase())) nameToOwner.set(n.toLowerCase(), id);
-const iceLog = [];
+const iceLog = [], iceLogAll = [];
 const unmatched = new Set();
 if (existsSync(new URL('data/ice-log.csv', import.meta.url))) {
   const [header, ...rows] = parseCsv(readFileSync(new URL('data/ice-log.csv', import.meta.url), 'utf8'));
   const col = (re) => header.findIndex((h) => re.test(h));
-  const c = { who: col(/manager|name/i), week: col(/week/i), why: col(/why|reason/i), date: col(/date/i), time: col(/time completed/i), secs: col(/time of ice|seconds|duration/i) };
+  const c = { who: col(/manager|name/i), week: col(/week/i), why: col(/why|reason/i), date: col(/date/i), time: col(/time completed/i), secs: col(/time of ice|seconds|duration/i), season: col(/season|year/i) };
+  // Which season an ice belongs to: a Season (or Year) column if the sheet has one, otherwise the
+  // date (January and February ices belong to the season before), otherwise this season.
+  const seasonOf = (r) => {
+    const s = Number(String(r[c.season] ?? '').trim());
+    if (s > 2000) return s;
+    const d = String(r[c.date] ?? '').match(/^(\d{1,2})\/\d{1,2}\/(\d{4})/);
+    return d ? Number(d[2]) - (Number(d[1]) < 3 ? 1 : 0) : SEASON;
+  };
   for (const r of rows) {
     const name = (r[c.who] || '').trim();
     if (!name) continue;
     const ownerId = nameToOwner.get(name.toLowerCase());
     if (!ownerId) { unmatched.add(name); continue; }
     const secs = parseFloat(String(r[c.secs] || '').replace(/[^\d.]/g, ''));
-    iceLog.push({ ownerId, week: Number(r[c.week]) || null, why: (r[c.why] || '').trim(), date: (r[c.date] || '').trim(), time: (r[c.time] || '').trim(), secs: Number.isFinite(secs) ? secs : null });
+    iceLogAll.push({ ownerId, season: seasonOf(r), week: Number(r[c.week]) || null, why: (r[c.why] || '').trim(), date: (r[c.date] || '').trim(), time: (r[c.time] || '').trim(), secs: Number.isFinite(secs) ? secs : null });
   }
 }
 if (unmatched.size) console.warn(`Ice log names not matched to an owner (add them as aliases in league.config.json): ${[...unmatched].join(', ')}`);
+// The Ice tab and the season awards use this season's ices; the All-time awards use the whole log.
+iceLog.push(...iceLogAll.filter((x) => x.season === SEASON));
 
 const iceTable = teams.map((t) => {
   const earned = iceWeeks.flatMap((w) => w.owed.filter((o) => o.teamId === t.id));
@@ -868,11 +882,42 @@ const records = [
 // Each manager's highest and lowest weekly score, per season and all-time (regular season).
 const years = [...new Set(allGames.map((g) => g.year))].sort();
 
+// ---------- Box scores, every season that has them ----------
+// Past ESPN seasons from history/boxscores-<year>.json (scripts/import-past-boxscores.mjs), plus this
+// season's. Per NFL week, each team as { owner, team, score, optimal, players, opp }.
+const boxSeasons = (() => {
+  const list = [];
+  const side = (teamId, players, nameOf, ownerOf) => ({
+    teamId, owner: ownerOf(teamId), team: nameOf(teamId), players,
+    score: r2(players.filter((p) => isStarter(p.slot)).reduce((a, p) => a + p.pts, 0)),
+    optimal: r2(bestLineup(players)),
+  });
+  const pair = (a, b) => { if (a && b) { a.opp = { team: b.team, score: b.score }; b.opp = { team: a.team, score: a.score }; } return [a, b].filter(Boolean); };
+  for (const year of pastSeasons.filter((y) => existsSync(new URL(`history/boxscores-${y}.json`, import.meta.url))).sort()) {
+    const h = read(`history/boxscores-${year}.json`), s = seasonData(year);
+    const nameOf = (id) => teamName(s.teams.find((t) => t.id === id)), ownerOf = (id) => s.teams.find((t) => t.id === id)?.primaryOwner;
+    const weeks = Object.entries(h.weeks).filter(([, games]) => games.length).map(([sp, games]) => ({
+      sp: Number(sp), matchupPeriod: games[0].matchupPeriod, playoff: games[0].matchupPeriod > h.regWeeks, final: true,
+      sides: games.flatMap((g) => pair(...g.sides.map((x) => side(x.teamId, x.players.map(([slot, name, pos, pro, pts]) => ({ slot, name, pos, pro, pts })), nameOf, ownerOf)))),
+    }));
+    list.push({ year, weeks });
+  }
+  // This season: finished regular-season weeks (its ices come from the Ice tab's own count).
+  const cweeks = Object.entries(box).filter(([sp]) => doneWeeks.includes(Number(sp)) && Number(sp) <= regWeeks).map(([sp, games]) => ({
+    sp: Number(sp), matchupPeriod: Number(sp), playoff: false, final: true,
+    sides: games.flatMap((m) => pair(...[m.home, m.away].filter((x) => x?.rosterForCurrentScoringPeriod).map((x) => side(x.teamId,
+      x.rosterForCurrentScoringPeriod.entries.map((e) => ({ slot: e.lineupSlotId, name: e.playerPoolEntry.player.fullName, pos: POS[e.playerPoolEntry.player.defaultPositionId] ?? '?', pro: PRO[e.playerPoolEntry.player.proTeamId] ?? '', pts: r2(pts(e)) })),
+      (id) => team[id].name, (id) => team[id].ownerId)))),
+  }));
+  list.push({ year: SEASON, weeks: cweeks });
+  return list;
+})();
+
 // ---------- All-time awards ----------
 // The same awards as the season's, over every season (regular season). Scores, margins, luck and
-// schedule go back to the first season. Roster moves come from ESPN's per-season counts (ESPN seasons
-// only). Player weeks, lineups and ices need box scores and the ice log, which start this season, so
-// those cards show this season's winner and say so.
+// schedule go back to the first season (2023, from the league's sheet). Player weeks, lineups and ices
+// earned need box scores (ESPN seasons); roster moves come from ESPN's per-season counts; ice times
+// from every season in the league's ice log.
 const awardsAllTime = (() => {
   const out = [];
   const span = (ys) => (ys.length > 1 ? `${ys[0]}–${ys.at(-1)}` : String(ys[0]));
@@ -881,7 +926,6 @@ const awardsAllTime = (() => {
   const vs = (x) => `${x.year} week ${x.week}`;
   const add = (x, a) => x && out.push(a(x));
   const lost = sides.filter((x) => x.opp.score > x.score), won = sides.filter((x) => x.won);
-  const awardsOf = (t) => awards.find((a) => a.title === t);
 
   add(allHi, (x) => ({ title: 'Top score of the season', value: fmt(x.score), ...who(x.owner, x.team), note: `${vs(x)} vs ${x.opp.team}` }));
   add(allLo, (x) => ({ title: 'Lowest score', value: fmt(x.score), ...who(x.owner, x.team), note: `${vs(x)} vs ${x.opp.team}` }));
@@ -890,15 +934,28 @@ const awardsAllTime = (() => {
   add(by(lost, (x) => x.score), (x) => ({ title: 'Most points in a loss', value: fmt(x.score), ...who(x.owner, x.team), note: `${vs(x)}, lost to ${x.opp.team}` }));
   add(by(won, (x) => -x.score), (x) => ({ title: 'Ugliest win', value: fmt(x.score), ...who(x.owner, x.team), note: `${vs(x)}: won with just ${fmt(x.score)}, beating ${x.opp.team} (${fmt(x.opp.score)})` }));
 
-  // Only tracked this season: this season's winner, labelled as such.
-  const thisSeason = (title, why) => {
-    const a = awardsOf(title);
-    if (a) out.push({ title, value: a.value, ...who(team[a.teamId].ownerId, team[a.teamId].name), note: `${SEASON} only (${why}) · ${a.note}` });
+  // Player weeks and lineups: every season with ESPN box scores (past ones from history/, made by
+  // scripts/import-past-boxscores.mjs, plus this season's finished weeks). Regular season only.
+  const boxYears = boxSeasons.map((b) => b.year);
+  const regSides = boxSeasons.flatMap((b) => b.weeks.filter((w) => !w.playoff && w.final).flatMap((w) => w.sides.map((s) => ({ ...s, year: b.year, week: w.matchupPeriod }))));
+  const starts = regSides.flatMap((s) => s.players.filter((p) => isStarter(p.slot)).map((p) => ({ ...p, side: s })));
+  const playerWeekNote = (p) => {
+    const s = p.side, res = s.opp ? `; the team ${s.score > s.opp.score ? 'won' : s.score < s.opp.score ? 'lost' : 'tied'} ${fmt(s.score)}–${fmt(s.opp.score)} vs ${s.opp.team}` : '';
+    return `${p.name} (${p.pos}${p.pro ? ', ' + p.pro : ''}) scored ${fmt(p.pts)} in ${s.year} week ${s.week}${res}`;
   };
-  thisSeason('Best player week', 'box scores start then');
-  thisSeason('Worst starter week', 'box scores start then');
-  thisSeason('Coach of the year', 'box scores start then');
-  thisSeason(awardName('Bench Cuck'), 'box scores start then');
+  add(by(starts, (p) => p.pts), (p) => ({ title: 'Best player week', value: fmt(p.pts), ...who(p.side.owner, p.side.team), note: playerWeekNote(p) }));
+  add(by(starts.filter((p) => p.pos !== 'D/ST' && p.pos !== 'K'), (p) => -p.pts), (p) => ({ title: 'Worst starter week', value: fmt(p.pts), ...who(p.side.owner, p.side.team), note: playerWeekNote(p) }));
+  const lineups = {};
+  for (const s of regSides) {
+    const l = (lineups[s.owner] ??= { owner: s.owner, pf: 0, best: 0, games: 0, optimalLosses: 0, years: new Set() });
+    l.pf += s.score; l.best += s.optimal; l.games++; l.years.add(s.year);
+    if (s.opp && s.score < s.opp.score && s.optimal > s.opp.score) l.optimalLosses++;
+  }
+  // Like the schedule, the lineup share needs a real sample: managers with at least half the most games.
+  const maxLineupGames = Math.max(0, ...Object.values(lineups).map((l) => l.games));
+  const coachAll = by(Object.values(lineups).filter((l) => l.games >= maxLineupGames / 2), (l) => l.pf / l.best);
+  add(coachAll, (l) => ({ title: 'Coach of the year', value: `${r1((l.pf / l.best) * 100)}%`, ...who(l.owner), note: `Highest share of the best possible lineup actually started, ${span([...l.years].sort())}` }));
+  add(by(Object.values(lineups), (l) => l.best - l.pf), (l) => ({ title: awardName('Bench Cuck'), value: fmt(l.best - l.pf), ...who(l.owner), note: `Points short of the optimal lineup, ${span([...l.years].sort())}; ${l.optimalLosses} losses would have been wins` }));
 
   // Luck: actual wins against expected wins (the share of the league each weekly score beat), summed over every season.
   const luck = {};
@@ -946,10 +1003,34 @@ const awardsAllTime = (() => {
       note: `Opponents ${top.W}-${top.L}${top.T ? `-${top.T}` : ''} over ${top.games} games, ${span(years)}, ${top.ppg} points a game${shared.length ? `; shared with ${shared.map((s) => owners[s.owner]?.name).join(', ')}` : ''}` });
   }
 
-  // Ices: the ice log starts this season.
-  thisSeason('Fastest ice', 'the ice log starts then');
-  thisSeason('Slowest ice', 'the ice log starts then');
-  thisSeason('Most ices', 'the ice log starts then');
+  // Ice times: every season in the league's ice log.
+  const timedAll = iceLogAll.filter((x) => x.secs != null);
+  const iceTeam = (x) => allTime[x.ownerId]?.names.find((n) => n.year === x.season)?.name;
+  const iceNoteAll = (x) => `${x.why}, ${x.season}${x.week ? ` week ${x.week}` : ''}${x.date ? ` · ${x.date}` : ''}`;
+  add(by(timedAll, (x) => -x.secs), (x) => ({ title: 'Fastest ice', value: `${x.secs.toFixed(2)} s`, ...who(x.ownerId, iceTeam(x)), note: iceNoteAll(x) }));
+  add(by(timedAll, (x) => x.secs), (x) => ({ title: 'Slowest ice', value: `${x.secs.toFixed(2)} s`, ...who(x.ownerId, iceTeam(x)), note: iceNoteAll(x) }));
+  // Ices earned: worked out from box scores by the same rules as the Ice tab (the week's lowest score
+  // and every 0-point starter, doubled in the playoffs). Past seasons from history/, this season from the Ice tab.
+  const earned = {};
+  const tally = (owner, kind, n) => { const e = (earned[owner] ??= { owner, lowest: 0, duds: 0 }); e[kind] += n; };
+  for (const b of boxSeasons.filter((b) => b.year !== SEASON)) {
+    for (const w of b.weeks) {
+      const mult = w.playoff ? multiplier : 1;
+      const all = w.sides;
+      const low = Math.min(...all.map((s) => s.score));
+      for (const s of all) {
+        if (s.score === low) tally(s.owner, 'lowest', mult);
+        tally(s.owner, 'duds', s.players.filter((p) => isStarter(p.slot) && p.pts <= 0).length * mult);
+      }
+    }
+  }
+  for (const r of iceTable) { tally(r.ownerId, 'lowest', r.lowest); tally(r.ownerId, 'duds', r.duds); }
+  const iceRank = Object.values(earned).map((e) => ({ ...e, total: e.lowest + e.duds })).sort((a, b) => b.total - a.total);
+  if (iceRank[0]?.total) {
+    const top = iceRank[0], tied = iceRank.slice(1).filter((e) => e.total === top.total);
+    out.push({ title: 'Most ices', value: String(top.total), ...who(top.owner),
+      note: `${top.lowest} for the lowest score, ${top.duds} for 0-point starters, ${span(boxYears)}${tied.length ? `; tied with ${tied.map((e) => owners[e.owner]?.name).join(', ')}` : ''}` });
+  }
 
   // Roster moves: ESPN's per-season counts for past ESPN seasons, plus this season's moves and trades.
   const moveYears = [...new Set([...pastSeasons.filter((y) => existsSync(new URL(`data/season-${y}.json`, import.meta.url))), SEASON])].sort();

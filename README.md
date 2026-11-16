@@ -49,6 +49,9 @@ If fetching starts returning 401, the cookies have expired. Log into espn.com ag
 
 `.env` also holds `ICE_SHEET_ID` and `ICE_SHEET_TAB` for the league's penalty log, a Google Sheet shared
 as "Anyone with the link can view". If it can't be read, the build keeps the last `data/ice-log.csv`.
+Older seasons' ices can go in the same tab: each row's season comes from a `Season` column if there is one,
+otherwise from its date (January and February count toward the season before). The Ice tab and season
+awards show this season's rows; the All-time awards use them all.
 
 ## Deploy
 
@@ -179,7 +182,9 @@ time on page and an estimated exit page. There are no cookies. The weekly traffi
 - `env.mjs`: reads settings from environment variables, falling back to `.env`
 - `fetch.mjs`: ESPN API calls (teams, rosters, matchups, box scores, draft, transactions, past seasons)
 - `build.mjs`: standings, all-play, luck, power rankings, optimal lineups, draft value, awards and history
-- `history/`: seasons from before the league moved to ESPN, imported by `scripts/import-season-sheet.mjs`
+- `history/`: seasons from before the league moved to ESPN, imported by `scripts/import-season-sheet.mjs`,
+  and past ESPN seasons' weekly box scores (`boxscores-<year>.json`) for the All-time awards, saved once by
+  `node scripts/import-past-boxscores.mjs` (run it again after each season ends)
 - `site-src/template.html`: the page; `build.mjs` injects the data where it says `/*__DATA__*/null`
 - `site-src/fonts/`: Barlow and Big Shoulders Display (latin), copied into `site/fonts/` by the build
 - `notify.mjs`, `traffic-report.mjs`: the penalty emails and the weekly traffic email

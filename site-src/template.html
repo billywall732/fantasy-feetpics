@@ -661,6 +661,8 @@ nav.tabs .tablist a .emoji { display: none; }
   .block-head h2 { font-size: 26px; }
   .block-head h2::after { width: 26px; height: 3px; }
   .block-head p, .note { font-size: 12.5px; }
+  /* Awards: the note always gets its own line, so "This season" and "All-time" (a longer title) line up the same */
+  #view-awards .block-head p { flex-basis: 100%; }
 
   /* Tables: tighter cells, wrapped names, secondary columns hidden */
   th, td { padding: 8px 6px; }
@@ -2120,7 +2122,8 @@ function renderAwards() {
   const list = all ? D.awardsAllTime : D.awards;
   const first = D.seasons[0]?.year;
   $('awards-title').textContent = all ? 'All-time awards' : 'Season awards';
-  $('awards-note').textContent = all ? `Regular season, every season since ${first}, including this one through week ${L.lastWeek}.` : `Through week ${L.lastWeek}.`;
+  // Kept to one short line either way, so switching doesn't move the awards on phones.
+  $('awards-note').textContent = all ? `Since ${first}, through week ${L.lastWeek}.` : `Through week ${L.lastWeek}.`;
   // All-time awards name the team and owner of that season; season awards point at this season's team.
   const card = (a) => {
     const [icon, k] = AWARD_STYLE[a.title] || ['🏅', 'var(--accent)'];
