@@ -113,14 +113,17 @@ function mailer() {
   transport ??= nodemailer.createTransport({ service: 'gmail', auth: { user: env.GMAIL_USER, pass: env.GMAIL_APP_PASSWORD.replace(/\s+/g, '') } });
   return transport;
 }
-// Every email is BCC'd to NOTIFY_BCC, or to the sending account when that isn't set.
-const BCC = env.NOTIFY_BCC || env.GMAIL_USER;
+// Every email is BCC'd so the league admin sees what went out: NOTIFY_BCC, else league.config.json ->
+// notifyBcc. Not the sending account: Gmail files a BCC to yourself in Sent only, so it never reaches the
+// inbox or its forwarding (that's how the week 10 top-score copy went missing).
+const config = JSON.parse(readFileSync(here('league.config.json'), 'utf8'));
+const BCC = env.NOTIFY_BCC || config.notifyBcc || env.GMAIL_USER;
 async function send(to, ev) {
   const m = compose(ev);
   const bcc = BCC && BCC.toLowerCase() !== to.toLowerCase() ? BCC : undefined;
   const from = ev.kind === 'highest' ? 'Feetpics Score Bot' : 'Feetpics Ice Bot';
   await mailer().sendMail({ from: `"${from}" <${env.GMAIL_USER}>`, to, bcc, subject: m.subject, html: m.html, text: m.text });
-  return m.subject;
+  return bcc ? `${m.subject} (copy to ${bcc})` : m.subject;
 }
 
 // ---------- Test mode: one of each kind, to one address ----------

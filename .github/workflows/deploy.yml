@@ -37,8 +37,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 360
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -53,6 +53,8 @@ jobs:
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
           ICE_EMAILS: ${{ secrets.ICE_EMAILS }}
           NOTIFY_ENABLED: ${{ vars.NOTIFY_ENABLED }}
+          # Optional override for who gets a copy of every bot email (default: league.config.json -> notifyBcc).
+          NOTIFY_BCC: ${{ vars.NOTIFY_BCC }}
           ESPN_S2: ${{ secrets.ESPN_S2 }}
           ESPN_SWID: ${{ secrets.ESPN_SWID }}
           LEAGUE_ID: ${{ vars.LEAGUE_ID }}

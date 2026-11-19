@@ -70,5 +70,6 @@
   },
   "leagueFee": 100,
   "refreshUrl": "https://league-refresh.offthewall-dev.workers.dev",
-  "trafficReportTo": "williamwall2020@gmail.com"
+  "trafficReportTo": "williamwall2020@gmail.com",
+  "notifyBcc": "williamwall2020@gmail.com"
 }
