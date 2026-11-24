@@ -109,7 +109,8 @@ Both sites have a **Refresh now** button next to "Updated X min ago". It asks a 
 
 Worked out from ESPN scores in `build.mjs`: one ice penalty for the lowest team score of each NFL week
 (all tied teams owe one) and one for every starter scoring 0 or less. Playoff penalties count double
-(`league.config.json` → `ice.playoffMultiplier`). Due Thursday 8:00 PM ET after the week's last game.
+(`league.config.json` → `ice.playoffMultiplier`). Due by Thursday night kickoff (a fixed 8:15 PM ET) after the week's last game, even when the next
+week starts earlier (Thanksgiving).
 
 `league.config.json` maps ESPN accounts to the names the league uses. If the build warns about an
 unmatched name in the penalty log, add it to that owner's `aliases`.

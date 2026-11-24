@@ -2,30 +2,33 @@
 // history/season-<year>.json in the same shape as ESPN's season files (just the parts build.mjs
 // reads), so the History tab, records, all-time table and head-to-head include it.
 //
-//   node scripts/import-season-sheet.mjs 2023 <sheet id>
+//   node scripts/import-season-sheet.mjs 2023 <sheet id> [tab gid, default 0 (the first tab)]
 //
 // The sheet has one row per team per week: Team, General Manager (first name), Week, Matchup
 // (the other team), W/L, Total Points Scored, ... Weeks 1 to the last regular-season week, then a
 // "PLAYOFFS" divider, then the playoff weeks (a 4-team bracket and a consolation bracket).
+// Each row's "Zero/Negative Ice" and "Lowest Score of the Week Ice" are kept as that week's ices
+// (raw counts; build.mjs doubles playoff weeks like every other season), for the All-time awards.
 // Each General Manager is matched to their ESPN member by first name (league.config.json ->
 // owners -> short), using the members in data/season-*.json, so it's the same person as in later
 // seasons. Run it once; history files are kept in git (data/ isn't).
 import { readFileSync, readdirSync, writeFileSync, mkdirSync } from 'node:fs';
 
-const [year, sheetId] = process.argv.slice(2);
-if (!/^\d{4}$/.test(year || '') || !sheetId) { console.error('Usage: node scripts/import-season-sheet.mjs <year> <sheet id>'); process.exit(1); }
+const [year, sheetId, gid = '0'] = process.argv.slice(2);
+if (!/^\d{4}$/.test(year || '') || !sheetId) { console.error('Usage: node scripts/import-season-sheet.mjs <year> <sheet id> [tab gid]'); process.exit(1); }
 const root = new URL('../', import.meta.url);
 const read = (f) => JSON.parse(readFileSync(new URL(f, root), 'utf8'));
 
 // ---------- The sheet ----------
-const res = await fetch(`https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`);
+const res = await fetch(`https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`);
 if (!res.ok) throw new Error(`Couldn't download the sheet (HTTP ${res.status}). Is it shared "anyone with the link"?`);
 const rows = parseCsv(await res.text());
 const head = rows.shift().map((h) => h.trim());
 const col = (name) => { const i = head.indexOf(name); if (i < 0) throw new Error(`No "${name}" column`); return i; };
-const C = { team: col('Team'), gm: col('General Manager'), week: col('Week'), opp: col('Matchup'), wl: col('W/L'), pts: col('Total Points Scored') };
+const C = { team: col('Team'), gm: col('General Manager'), week: col('Week'), opp: col('Matchup'), wl: col('W/L'), pts: col('Total Points Scored'), duds: head.indexOf('Zero/Negative Ice'), lowest: head.indexOf('Lowest Score of the Week Ice') };
 const lines = rows.filter((r) => /^\d+$/.test(r[C.week]?.trim())).map((r) => ({
   team: r[C.team].trim(), gm: r[C.gm].trim(), week: Number(r[C.week]), opp: r[C.opp].trim(), won: r[C.wl].trim() === 'W', pts: Number(r[C.pts]),
+  duds: Number(r[C.duds]) || 0, lowest: Number(r[C.lowest]) || 0,
 }));
 // The regular season ends at the "PLAYOFFS" divider
 const divider = rows.findIndex((r) => r[C.week]?.trim().toUpperCase() === 'PLAYOFFS');
@@ -97,10 +100,12 @@ const out = {
   members: [...new Map(teams.map((t) => [t.member.id, { id: t.member.id, firstName: t.member.firstName, lastName: t.member.lastName, displayName: t.member.displayName }])).values()],
   teams: teams.map((t) => ({ id: t.id, name: t.name, primaryOwner: t.primaryOwner, playoffSeed: t.playoffSeed, rankCalculatedFinal: place.get(t.id), record: { overall: { wins: t.wins, losses: t.losses, ties: 0, pointsFor: t.pointsFor } } })),
   schedule,
+  // Ices earned each week, from the sheet (only weeks where a team earned one)
+  ...(C.duds >= 0 && C.lowest >= 0 && { ices: lines.filter((l) => l.duds || l.lowest).map((l) => ({ week: l.week, teamId: teamsByName.get(l.team).id, lowest: l.lowest, duds: l.duds })) }),
 };
 mkdirSync(new URL('history/', root), { recursive: true });
 writeFileSync(new URL(`history/season-${year}.json`, root), `${JSON.stringify(out, null, 2)}\n`);
-console.log(`Saved history/season-${year}.json: ${teams.length} teams, ${regWeeks} regular-season weeks, ${schedule.length} games.`);
+console.log(`Saved history/season-${year}.json: ${teams.length} teams, ${regWeeks} regular-season weeks, ${schedule.length} games${out.ices ? `, ${out.ices.reduce((s, x) => s + x.lowest + x.duds, 0)} ices` : ''}.`);
 for (const t of [...out.teams].sort((a, b) => a.rankCalculatedFinal - b.rankCalculatedFinal)) {
   console.log(`  ${t.rankCalculatedFinal}. ${t.name} (${teamsByName.get(t.name).member.firstName}) ${t.record.overall.wins}-${t.record.overall.losses}, ${t.record.overall.pointsFor} pts, seed ${t.playoffSeed}`);
 }

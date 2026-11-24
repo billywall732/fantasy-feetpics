@@ -101,6 +101,13 @@ if (env.ICE_SHEET_ID) {
     console.warn(`  Could not read the sheet (HTTP ${res.status}). Set its sharing to "Anyone with the link can view".`);
     console.warn('  Keeping the previous data/ice-log.csv if there is one.');
   }
+  // The season punishments, from the same sheet's Punishments tab (the league's own site shows them)
+  const pres = await fetch(`https://docs.google.com/spreadsheets/d/${env.ICE_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(env.PUNISH_SHEET_TAB || 'Punishments')}`);
+  const ptext = await pres.text();
+  if (pres.ok && !ptext.trimStart().startsWith('<') && /punishment/i.test(ptext.split('\n')[0])) {
+    writeFileSync(new URL('data/punishments.csv', import.meta.url), ptext);
+    console.log('  saved data/punishments.csv');
+  } else console.warn(`  Could not read the Punishments tab (HTTP ${pres.status}). Keeping the previous data/punishments.csv if there is one.`);
 }
 
 for (const season of current.status.previousSeasons || []) {

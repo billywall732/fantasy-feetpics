@@ -1,6 +1,6 @@
 {
   "seasonId": 2023,
-  "source": "Google Sheet 1sZqVg8UT38CwUhj9JNdRcojiwCkrYalLoEegrZJkF4Q (imported by scripts/import-season-sheet.mjs)",
+  "source": "Google Sheet 1-rc4N5oFZLIsOkZCcnp9jDgtK8BciNCTfybJeWHlflY (imported by scripts/import-season-sheet.mjs)",
   "settings": {
     "scheduleSettings": {
       "matchupPeriodCount": 15,
@@ -996,6 +996,260 @@
         "totalPoints": 113.4
       },
       "winner": "HOME"
+    }
+  ],
+  "ices": [
+    {
+      "week": 1,
+      "teamId": 1,
+      "lowest": 0,
+      "duds": 1
+    },
+    {
+      "week": 1,
+      "teamId": 3,
+      "lowest": 0,
+      "duds": 1
+    },
+    {
+      "week": 1,
+      "teamId": 4,
+      "lowest": 1,
+      "duds": 0
+    },
+    {
+      "week": 1,
+      "teamId": 5,
+      "lowest": 0,
+      "duds": 1
+    },
+    {
+      "week": 1,
+      "teamId": 8,
+      "lowest": 0,
+      "duds": 1
+    },
+    {
+      "week": 2,
+      "teamId": 6,
+      "lowest": 0,
+      "duds": 1
+    },
+    {
+      "week": 2,
+      "teamId": 2,
+      "lowest": 1,
+      "duds": 1
+    },
+    {
+      "week": 3,
+      "teamId": 3,
+      "lowest": 1,
+      "duds": 0
+    },
+    {
+      "week": 3,
+      "teamId": 4,
+      "lowest": 0,
+      "duds": 1
+    },
+    {
+      "week": 4,
+      "teamId": 1,
+      "lowest": 0,
+      "duds": 2
+    },
+    {
+      "week": 4,
+      "teamId": 8,
+      "lowest": 0,
+      "duds": 1
+    },
+    {
+      "week": 4,
+      "teamId": 6,
+      "lowest": 1,
+      "duds": 0
+    },
+    {
+      "week": 5,
+      "teamId": 1,
+      "lowest": 0,
+      "duds": 1
+    },
+    {
+      "week": 5,
+      "teamId": 6,
+      "lowest": 0,
+      "duds": 1
+    },
+    {
+      "week": 5,
+      "teamId": 7,
+      "lowest": 1,
+      "duds": 0
+    },
+    {
+      "week": 5,
+      "teamId": 2,
+      "lowest": 0,
+      "duds": 1
+    },
+    {
+      "week": 6,
+      "teamId": 7,
+      "lowest": 1,
+      "duds": 0
+    },
+    {
+      "week": 7,
+      "teamId": 5,
+      "lowest": 0,
+      "duds": 1
+    },
+    {
+      "week": 7,
+      "teamId": 3,
+      "lowest": 0,
+      "duds": 1
+    },
+    {
+      "week": 7,
+      "teamId": 6,
+      "lowest": 0,
+      "duds": 1
+    },
+    {
+      "week": 7,
+      "teamId": 2,
+      "lowest": 1,
+      "duds": 0
+    },
+    {
+      "week": 8,
+      "teamId": 5,
+      "lowest": 1,
+      "duds": 0
+    },
+    {
+      "week": 9,
+      "teamId": 5,
+      "lowest": 1,
+      "duds": 1
+    },
+    {
+      "week": 9,
+      "teamId": 6,
+      "lowest": 0,
+      "duds": 1
+    },
+    {
+      "week": 9,
+      "teamId": 2,
+      "lowest": 0,
+      "duds": 1
+    },
+    {
+      "week": 10,
+      "teamId": 2,
+      "lowest": 1,
+      "duds": 0
+    },
+    {
+      "week": 10,
+      "teamId": 6,
+      "lowest": 0,
+      "duds": 1
+    },
+    {
+      "week": 11,
+      "teamId": 2,
+      "lowest": 1,
+      "duds": 0
+    },
+    {
+      "week": 12,
+      "teamId": 8,
+      "lowest": 0,
+      "duds": 1
+    },
+    {
+      "week": 12,
+      "teamId": 2,
+      "lowest": 1,
+      "duds": 0
+    },
+    {
+      "week": 13,
+      "teamId": 1,
+      "lowest": 0,
+      "duds": 1
+    },
+    {
+      "week": 13,
+      "teamId": 6,
+      "lowest": 0,
+      "duds": 1
+    },
+    {
+      "week": 13,
+      "teamId": 4,
+      "lowest": 1,
+      "duds": 0
+    },
+    {
+      "week": 13,
+      "teamId": 8,
+      "lowest": 0,
+      "duds": 1
+    },
+    {
+      "week": 14,
+      "teamId": 8,
+      "lowest": 1,
+      "duds": 0
+    },
+    {
+      "week": 14,
+      "teamId": 2,
+      "lowest": 0,
+      "duds": 1
+    },
+    {
+      "week": 15,
+      "teamId": 1,
+      "lowest": 0,
+      "duds": 2
+    },
+    {
+      "week": 15,
+      "teamId": 3,
+      "lowest": 1,
+      "duds": 0
+    },
+    {
+      "week": 16,
+      "teamId": 5,
+      "lowest": 0,
+      "duds": 1
+    },
+    {
+      "week": 16,
+      "teamId": 2,
+      "lowest": 1,
+      "duds": 1
+    },
+    {
+      "week": 17,
+      "teamId": 1,
+      "lowest": 1,
+      "duds": 0
+    },
+    {
+      "week": 17,
+      "teamId": 4,
+      "lowest": 0,
+      "duds": 1
     }
   ]
 }

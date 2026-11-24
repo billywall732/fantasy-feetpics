@@ -64,13 +64,13 @@ function compose(ev) {
       <p style="font-size:16px;line-height:1.5;margin:0 0 14px">${esc(reason)}</p>
       <p style="font-size:14px;color:#3a493f;margin:0 0 16px">Team: ${esc(ev.team)}${ev.playoff ? ' · Playoffs: ices count double' : ''}</p>
       <div style="background:#e8f4ff;border-left:4px solid #1b7fe8;border-radius:8px;padding:12px 14px;font-size:16px;margin:0 0 18px">
-        ⏰ <b>Due ${esc(ev.deadlineText)}</b>
+        ⏰ <b>Due by Thursday night kickoff: ${esc(ev.deadlineText)}</b>
       </div>
       <a href="${SITE_URL}#ice" style="display:inline-block;background:#0d8a48;color:#ffffff;text-decoration:none;font-weight:bold;padding:12px 18px;border-radius:999px">See the ice tracker</a>
     </div>
     <p style="font-size:11px;color:#5a685f;text-align:center;margin:14px 0 0">Sent automatically by the Fantasy Feetpics site.</p>
   </div></body></html>`;
-  const text = `${first}, you owe ${count}.\n\n${reason}\nTeam: ${ev.team}${ev.playoff ? ' (playoffs: ices count double)' : ''}\n\nDue ${ev.deadlineText}.\n\nIce tracker: ${SITE_URL}#ice`;
+  const text = `${first}, you owe ${count}.\n\n${reason}\nTeam: ${ev.team}${ev.playoff ? ' (playoffs: ices count double)' : ''}\n\nDue by Thursday night kickoff: ${ev.deadlineText}.\n\nIce tracker: ${SITE_URL}#ice`;
   return { subject, html, text, image };
 }
 
@@ -128,7 +128,7 @@ async function send(to, ev) {
 // has one, otherwise made-up data. Either way it goes only to the --test address.
 if (TEST_TO) {
   const deadline = Date.now() + 3 * 86400e3;
-  const deadlineText = new Date(deadline).toLocaleString('en-US', { timeZone: 'America/New_York', weekday: 'long', month: 'short', day: 'numeric' }) + ', 8:00 PM ET';
+  const deadlineText = new Date(deadline).toLocaleString('en-US', { timeZone: 'America/New_York', weekday: 'long', month: 'short', day: 'numeric' }) + ', 8:15 PM ET';
   const base = { season: 2026, week: 10, owner: 'Alex Morgan', team: 'Gridiron Gang', deadline, deadlineText, ices: 1, playoff: false };
   const real = existsSync(here('data/ice-events.json')) ? JSON.parse(readFileSync(here('data/ice-events.json'), 'utf8')) : [];
   const latest = (kind) => real.filter((e) => e.kind === kind).sort((a, b) => b.week - a.week)[0];

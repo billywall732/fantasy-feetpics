@@ -516,7 +516,7 @@ const highsLows = doneWeeks.map((w) => {
 
 // ---------- Ice ----------
 // One ice per instance: the week's lowest team score, and every starter with 0 or fewer points.
-// Doubled in the playoffs. Due at the next Thursday night kickoff; a missed deadline doubles it (stated rule, not tracked).
+// Doubled in the playoffs. Due by Thursday night kickoff (8:15 PM ET); a missed deadline doubles it (stated rule, not tracked).
 const nflWeeks = read('data/nfl-weeks.json');
 const periodOf = {};
 for (const [mp, sps] of Object.entries(cur.settings.scheduleSettings.matchupPeriods)) for (const sp of sps) periodOf[sp] = Number(mp);
@@ -525,26 +525,24 @@ const etParts = (ms) => Object.fromEntries(
   new Intl.DateTimeFormat('en-US', { timeZone: ET, year: 'numeric', month: 'numeric', day: 'numeric', weekday: 'short', hour: 'numeric', hourCycle: 'h23' })
     .formatToParts(new Date(ms)).map((p) => [p.type, p.value])
 );
-function etToUtc(y, mo, d, h) {
+function etToUtc(y, mo, d, h, min = 0) {
   for (const off of [4, 5]) {
-    const t = Date.UTC(y, mo - 1, d, h + off);
+    const t = Date.UTC(y, mo - 1, d, h + off, min);
     const p = etParts(t);
     if (Number(p.hour) === h && Number(p.day) === new Date(Date.UTC(y, mo - 1, d)).getUTCDate()) return t;
   }
-  return Date.UTC(y, mo - 1, d, h + 5);
+  return Date.UTC(y, mo - 1, d, h + 5, min);
 }
-// Ices are due at kickoff of the next week's first game (normally Thursday Night Football).
-// If that game isn't known (end of season), fall back to Thursday 8:00 PM ET after the week ends.
+// Ices are due by Thursday night kickoff, 8:15 PM ET, on the Thursday after the week's last game.
+// A fixed time: it stays 8:15 even when the next week starts earlier (Thanksgiving, opening night).
 function deadlineFor(sp) {
   const last = nflWeeks[sp]?.last;
   if (!last) return null;
-  const nextKick = nflWeeks[sp + 1]?.first;
-  if (nextKick && nextKick > last) return nextKick;
   const p = etParts(last);
   const days = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
   let ahead = (4 - days[p.weekday] + 7) % 7 || 7; // the next Thursday after the last game
   const d = new Date(Date.UTC(Number(p.year), Number(p.month) - 1, Number(p.day) + ahead));
-  return etToUtc(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate(), 20);
+  return etToUtc(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate(), 20, 15);
 }
 const multiplier = config.ice?.playoffMultiplier ?? 2;
 const latestSp = cur.status.latestScoringPeriod;
@@ -685,12 +683,15 @@ const unmatched = new Set();
 if (existsSync(new URL('data/ice-log.csv', import.meta.url))) {
   const [header, ...rows] = parseCsv(readFileSync(new URL('data/ice-log.csv', import.meta.url), 'utf8'));
   const col = (re) => header.findIndex((h) => re.test(h));
-  const c = { who: col(/manager|name/i), week: col(/week/i), why: col(/why|reason/i), date: col(/date/i), time: col(/time completed/i), secs: col(/time of ice|seconds|duration/i), season: col(/season|year/i) };
-  // Which season an ice belongs to: a Season (or Year) column if the sheet has one, otherwise the
-  // date (January and February ices belong to the season before), otherwise this season.
+  const c = { who: col(/manager|name/i), week: col(/week/i), why: col(/why|reason/i), date: col(/date/i), time: col(/time completed/i), secs: col(/time of ice|seconds|duration/i), season: col(/season|year/i), note: col(/note/i) };
+  // Which season an ice belongs to: a Season (or Year) column if the sheet has one (filled in on the
+  // first row of each season, so a blank carries down the one above), otherwise the date (January and
+  // February ices belong to the season before), otherwise this season.
+  let carried = null;
   const seasonOf = (r) => {
     const s = Number(String(r[c.season] ?? '').trim());
-    if (s > 2000) return s;
+    if (s > 2000) return (carried = s);
+    if (carried) return carried;
     const d = String(r[c.date] ?? '').match(/^(\d{1,2})\/\d{1,2}\/(\d{4})/);
     return d ? Number(d[2]) - (Number(d[1]) < 3 ? 1 : 0) : SEASON;
   };
@@ -700,7 +701,9 @@ if (existsSync(new URL('data/ice-log.csv', import.meta.url))) {
     const ownerId = nameToOwner.get(name.toLowerCase());
     if (!ownerId) { unmatched.add(name); continue; }
     const secs = parseFloat(String(r[c.secs] || '').replace(/[^\d.]/g, ''));
-    iceLogAll.push({ ownerId, season: seasonOf(r), week: Number(r[c.week]) || null, why: (r[c.why] || '').trim(), date: (r[c.date] || '').trim(), time: (r[c.time] || '').trim(), secs: Number.isFinite(secs) ? secs : null });
+    iceLogAll.push({ ownerId, season: seasonOf(r), week: Number(r[c.week]) || null, why: (r[c.why] || '').trim(), date: (r[c.date] || '').trim(), time: (r[c.time] || '').trim(), secs: Number.isFinite(secs) ? secs : null,
+      // The sheet's Notes (extensions, missed ices) can be personal, so only the league's own site shows them.
+      note: PUBLIC ? '' : String(r[c.note] ?? '').trim().replace(/^\*+|\*+$/g, '').trim() });
   }
 }
 if (unmatched.size) console.warn(`Ice log names not matched to an owner (add them as aliases in league.config.json): ${[...unmatched].join(', ')}`);
@@ -915,8 +918,8 @@ const boxSeasons = (() => {
 
 // ---------- All-time awards ----------
 // The same awards as the season's, over every season (regular season). Scores, margins, luck and
-// schedule go back to the first season (2023, from the league's sheet). Player weeks, lineups and ices
-// earned need box scores (ESPN seasons); roster moves come from ESPN's per-season counts; ice times
+// schedule go back to the first season (2023, from the league's sheet). Player weeks and lineups need
+// box scores (ESPN seasons); ices earned come from box scores, or for 2023 from the sheet; roster moves come from ESPN's per-season counts; ice times
 // from every season in the league's ice log.
 const awardsAllTime = (() => {
   const out = [];
@@ -1010,9 +1013,20 @@ const awardsAllTime = (() => {
   add(by(timedAll, (x) => -x.secs), (x) => ({ title: 'Fastest ice', value: `${x.secs.toFixed(2)} s`, ...who(x.ownerId, iceTeam(x)), note: iceNoteAll(x) }));
   add(by(timedAll, (x) => x.secs), (x) => ({ title: 'Slowest ice', value: `${x.secs.toFixed(2)} s`, ...who(x.ownerId, iceTeam(x)), note: iceNoteAll(x) }));
   // Ices earned: worked out from box scores by the same rules as the Ice tab (the week's lowest score
-  // and every 0-point starter, doubled in the playoffs). Past seasons from history/, this season from the Ice tab.
+  // and every 0-point starter, doubled in the playoffs). Past seasons from history/, this season from the
+  // Ice tab, and seasons without box scores (2023) from the ices their sheet recorded.
   const earned = {};
   const tally = (owner, kind, n) => { const e = (earned[owner] ??= { owner, lowest: 0, duds: 0 }); e[kind] += n; };
+  const sheetIceYears = pastSeasons.filter((y) => !boxYears.includes(y) && seasonData(y).ices).sort();
+  for (const y of sheetIceYears) {
+    const s = seasonData(y), reg = s.settings.scheduleSettings.matchupPeriodCount;
+    const ownerOf = Object.fromEntries(s.teams.map((t) => [t.id, t.primaryOwner]));
+    for (const x of s.ices) {
+      const mult = x.week > reg ? multiplier : 1;
+      tally(ownerOf[x.teamId], 'lowest', x.lowest * mult);
+      tally(ownerOf[x.teamId], 'duds', x.duds * mult);
+    }
+  }
   for (const b of boxSeasons.filter((b) => b.year !== SEASON)) {
     for (const w of b.weeks) {
       const mult = w.playoff ? multiplier : 1;
@@ -1029,7 +1043,7 @@ const awardsAllTime = (() => {
   if (iceRank[0]?.total) {
     const top = iceRank[0], tied = iceRank.slice(1).filter((e) => e.total === top.total);
     out.push({ title: 'Most ices', value: String(top.total), ...who(top.owner),
-      note: `${top.lowest} for the lowest score, ${top.duds} for 0-point starters, ${span(boxYears)}${tied.length ? `; tied with ${tied.map((e) => owners[e.owner]?.name).join(', ')}` : ''}` });
+      note: `${top.lowest} for the lowest score, ${top.duds} for 0-point starters, ${span([...sheetIceYears, ...boxYears].sort())}${tied.length ? `; tied with ${tied.map((e) => owners[e.owner]?.name).join(', ')}` : ''}` });
   }
 
   // Roster moves: ESPN's per-season counts for past ESPN seasons, plus this season's moves and trades.
@@ -1078,6 +1092,150 @@ const schedules = Object.fromEntries(years.map((y) => {
   });
   return [y, { weeks: weeksList, owners: ownersIn, teamNames, results: weeksOut }];
 }));
+
+// ---------- Punishments (the league's own site only) ----------
+// Two each season, from the sheet's Punishments tab: one for the worst regular-season record (the last
+// seed), one for last place in the losers' bracket (the toilet bowl). Past seasons come from the final
+// standings; this season's chances from simulating the rest of it, like the lowest-score watch.
+const punishments = PUBLIC ? null : (() => {
+  const byYear = {};
+  const file = new URL('data/punishments.csv', import.meta.url);
+  if (existsSync(file)) {
+    const [header, ...rows] = parseCsv(readFileSync(file, 'utf8'));
+    const iYear = header.findIndex((h) => /season|year/i.test(h));
+    const iReg = header.findIndex((h) => /regular/i.test(h)), iPo = header.findIndex((h) => /playoff/i.test(h));
+    // Each punishment's stipulations are in the column right after it; "None" means there wasn't one.
+    const item = (r, i) => {
+      const title = i < 0 ? '' : (r[i] || '').trim();
+      return title && !/^none$/i.test(title) ? { title, rules: (r[i + 1] || '').trim().replace(/^none$/i, '') } : null;
+    };
+    for (const r of rows) {
+      const y = Number(r[iYear]);
+      if (y > 2000) byYear[y] = { regular: item(r, iReg), playoffs: item(r, iPo) };
+    }
+  }
+  const none = { regular: null, playoffs: null };
+
+  const past = seasons.filter((s) => s.complete).map((s) => {
+    const last = s.teams.reduce((a, t) => (t.seed > a.seed ? t : a));
+    const bowl = s.teams.find((t) => t.final === s.teams.length);
+    return {
+      year: s.year,
+      regular: { ownerId: last.ownerId, team: last.name, record: `${last.w}-${last.l}`, ...(byYear[s.year] ?? none).regular },
+      playoffs: bowl ? { ownerId: bowl.ownerId, team: bowl.name, ...(byYear[s.year] ?? none).playoffs } : null,
+      hasPlayoffs: !!(byYear[s.year] ?? none).playoffs,
+    };
+  }).reverse();
+
+  // ----- This season -----
+  const sch = cur.settings.scheduleSettings;
+  const spsOf = (mp) => sch.matchupPeriods?.[mp] ?? [Number(mp)];
+  const regGames = cur.schedule.filter((m) => m.matchupPeriodId <= regWeeks && m.away);
+  const decided = (m) => m.winner !== 'UNDECIDED';
+  const winnerOf = (m) => (m.winner === 'HOME' ? m.home.teamId : m.winner === 'AWAY' ? m.away.teamId : null);
+  const regDone = regGames.length > 0 && regGames.every(decided);
+
+  // Weeks still to play: each team's scoring this season (pulled a little toward the league average),
+  // with the league's week-to-week spread. The week in progress uses the live projections.
+  const scores = Object.fromEntries(teams.map((t) => [t.id, doneWeeks.map((w) => t.weeks[w]?.score).filter((x) => x != null)]));
+  const all = Object.values(scores).flat();
+  if (!all.length) return { past, current: null, rules: byYear[SEASON] ?? none };
+  const avg = (a) => a.reduce((s, x) => s + x, 0) / a.length;
+  const leagueAvg = avg(all);
+  const mean = Object.fromEntries(teams.map((t) => [t.id, (scores[t.id].reduce((s, x) => s + x, 0) + 3 * leagueAvg) / (scores[t.id].length + 3)]));
+  const sd = Math.max(15, Math.sqrt(avg(teams.flatMap((t) => scores[t.id].map((x) => (x - avg(scores[t.id])) ** 2)))));
+  let seed = 11;
+  const rand = () => ((seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648);
+  const gauss = () => Math.sqrt(-2 * Math.log(rand() || 1e-9)) * Math.cos(2 * Math.PI * rand());
+  const finalSp = new Set(iceWeeks.filter((w) => w.final).map((w) => w.week));
+  const actual = (teamId, sp) => {
+    for (const m of cur.schedule) for (const s of [m.home, m.away]) if (s?.teamId === teamId && s.pointsByScoringPeriod?.[sp] != null) return s.pointsByScoringPeriod[sp];
+    return null;
+  };
+  // One NFL week's score for a team: fixed once final, live projection while in progress, otherwise drawn.
+  const weekDraw = (teamId, sp) => {
+    if (finalSp.has(sp) && actual(teamId, sp) != null) { const a = actual(teamId, sp); return () => a; }
+    const side = (box[sp] || []).flatMap((m) => [m.home, m.away]).find((s) => s?.teamId === teamId && s.rosterForCurrentScoringPeriod);
+    if (side) { const l = liveSide(side, sp), spread = spreadFor(l.remaining); return () => l.proj + gauss() * spread; }
+    return () => mean[teamId] + gauss() * sd;
+  };
+  const draws = {};
+  const matchupScore = (teamId, mp) => (draws[`${teamId}:${mp}`] ??= spsOf(mp).map((sp) => weekDraw(teamId, Number(sp)))).reduce((s, f) => s + f(), 0);
+  // The winner of a game: from ESPN once decided, otherwise simulated (a tie goes to the higher seed).
+  const play = (a, b, mp, seedOf) => {
+    const g = cur.schedule.find((m) => m.matchupPeriodId === mp && m.away && [m.home.teamId, m.away.teamId].includes(a) && [m.home.teamId, m.away.teamId].includes(b));
+    if (g && decided(g)) return winnerOf(g) ?? (seedOf[a] < seedOf[b] ? a : b);
+    const sa = matchupScore(a, mp), sb = matchupScore(b, mp);
+    return sa > sb || (sa === sb && seedOf[a] < seedOf[b]) ? a : b;
+  };
+
+  // Regular-season standings so far, game by game (for head-to-head tiebreaks)
+  const baseW = Object.fromEntries(teams.map((t) => [t.id, 0])), basePf = Object.fromEntries(teams.map((t) => [t.id, 0]));
+  const baseGames = []; // [winner, loser]
+  for (const m of regGames.filter(decided)) {
+    basePf[m.home.teamId] += m.home.totalPoints; basePf[m.away.teamId] += m.away.totalPoints;
+    const w = winnerOf(m);
+    if (w) { baseW[w]++; baseGames.push([w, w === m.home.teamId ? m.away.teamId : m.home.teamId]); }
+  }
+  const open = regGames.filter((m) => !decided(m));
+  const byH2H = sch.playoffSeedingRule === 'H2H_RECORD';
+  const rankTeams = (W, PF, games) => {
+    const ids = teams.map((t) => t.id);
+    const h2h = (id, group) => {
+      const g = games.filter(([a, b]) => group.includes(a) && group.includes(b) && (a === id || b === id));
+      return g.length ? g.filter(([a]) => a === id).length / g.length : 0.5;
+    };
+    const groups = {};
+    for (const id of ids) (groups[W[id]] ??= []).push(id);
+    return Object.keys(groups).map(Number).sort((a, b) => b - a).flatMap((w) => {
+      const g = groups[w];
+      return g.sort((a, b) => (byH2H ? h2h(b, g) - h2h(a, g) : 0) || PF[b] - PF[a]);
+    });
+  };
+
+  const RUNS = 10000;
+  const lastCount = Object.fromEntries(teams.map((t) => [t.id, 0])), bowlCount = { ...lastCount };
+  for (let i = 0; i < RUNS; i++) {
+    let order;
+    if (regDone) order = [...teams].sort((a, b) => a.seed - b.seed).map((t) => t.id);
+    else {
+      const W = { ...baseW }, PF = { ...basePf }, games = [...baseGames];
+      for (const m of open) {
+        const h = m.home.teamId, a = m.away.teamId;
+        const sh = matchupScore(h, m.matchupPeriodId), sa = matchupScore(a, m.matchupPeriodId);
+        PF[h] += sh; PF[a] += sa;
+        const [w, l] = sh >= sa ? [h, a] : [a, h];
+        W[w]++; games.push([w, l]);
+      }
+      order = rankTeams(W, PF, games);
+    }
+    lastCount[order.at(-1)]++;
+    // The toilet bowl: the teams outside the playoffs. Round one pairs them 5 v 6 and 7 v 8 (as in past
+    // seasons, or ESPN's own pairings once they're set); the two losers play for last place.
+    const outside = order.slice(playoffTeams);
+    if (outside.length !== 4) continue;
+    const seedOf = Object.fromEntries(order.map((id, k) => [id, k + 1]));
+    const r1 = regWeeks + 1, r2 = regWeeks + 2;
+    const espnR1 = cur.schedule.filter((m) => m.matchupPeriodId === r1 && m.away && outside.includes(m.home.teamId) && outside.includes(m.away.teamId));
+    const pairs = espnR1.length === 2 ? espnR1.map((m) => [m.home.teamId, m.away.teamId]) : [[outside[0], outside[1]], [outside[2], outside[3]]];
+    const losers = pairs.map(([a, b]) => (play(a, b, r1, seedOf) === a ? b : a));
+    const w = play(losers[0], losers[1], r2, seedOf);
+    bowlCount[w === losers[0] ? losers[1] : losers[0]]++;
+  }
+  const chances = (count) => teams.map((t) => ({ teamId: t.id, ownerId: t.ownerId, chance: Math.round((count[t.id] / RUNS) * 1000) / 10, w: t.w, l: t.l }))
+    .filter((x) => x.chance > 0).sort((a, b) => b.chance - a.chance);
+  const reg = chances(lastCount), bowl = chances(bowlCount);
+  return {
+    past,
+    rules: byYear[SEASON] ?? none,
+    current: {
+      year: SEASON, runs: RUNS, asOf: NOW, regDone, tiebreak: byH2H ? 'head-to-head record, then points scored' : 'points scored',
+      regular: reg, playoffs: bowl,
+      regularLocked: reg.length === 1 && reg[0].chance === 100,
+      playoffsLocked: bowl.length === 1 && bowl[0].chance === 100,
+    },
+  };
+})();
 
 // ---------- League rules (from ESPN's league settings) ----------
 // ESPN scoring stat IDs -> [group, label]. Stat 88 (missed PAT) checked against real box scores.
@@ -1218,6 +1376,7 @@ const model = {
   rules,
   highsLows,
   ice: { weeks: iceWeeks, log: iceLog, table: iceTable, multiplier, currentSp: latestSp },
+  punishments,
 };
 
 // Light minify: drop indentation, CSS comments and whole-line JS comments. Done before the data goes in.

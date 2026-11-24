@@ -489,6 +489,39 @@ td.titles .no-title { color: var(--muted); font-family: var(--font-display); fon
 .ice-grid td.cell.hot { color: var(--ice-ink); }
 .ice-bar i { background: linear-gradient(90deg, #9fd3ff, var(--ice)); }
 .cubes { letter-spacing: -2px; font-size: 15px; }
+.ice-log-note { display: block; margin-top: 2px; }
+
+/* Punishments (League Rules, and the watch card on the Ice tab) */
+#punishments { scroll-margin-top: 72px; }
+.punish { padding: 20px 22px; margin-bottom: 16px; background: linear-gradient(150deg, color-mix(in oklab, var(--bad) 12%, var(--surface-solid)), var(--surface-solid) 70%); border: 1px solid color-mix(in oklab, var(--bad) 30%, transparent); }
+.punish h3 { margin: 0; font-family: var(--font-display); font-weight: 900; font-size: 30px; text-transform: uppercase; }
+.punish .lede { margin: 4px 0 14px; color: var(--ink-2); line-height: 1.45; }
+.punish .sub-rules { margin: 20px 0 10px; font-family: var(--font-display); font-weight: 800; font-size: 20px; text-transform: uppercase; letter-spacing: .02em; }
+.punish-now, .punish-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.punish-card { display: grid; gap: 6px; align-content: start; padding: 14px 16px; border-radius: var(--radius); background: var(--surface-solid); border: 1px solid var(--line); }
+.punish-title { font-size: 18px; line-height: 1.25; }
+.punish-stip summary { cursor: pointer; font-size: 13.5px; font-weight: 700; color: var(--accent); }
+.punish-stip p { margin: 6px 0 0; font-size: 14px; line-height: 1.5; color: var(--ink-2); }
+.punish-odds { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 6px; }
+.punish-odds li { display: grid; grid-template-columns: minmax(0, 7.5em) minmax(0, 1fr) 3.4em; align-items: center; gap: 8px; font-size: 14px; }
+.punish-odds li > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.punish-odds .bar { min-width: 0; }
+.punish-odds .bar i { background: linear-gradient(90deg, #ff9a7a, var(--bad)); }
+.punish-odds .num { text-align: right; }
+.punish-owed { margin: 4px 0 0; font-weight: 800; color: var(--bad); }
+.punish-past { display: grid; gap: 10px; }
+.punish-year { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 12px; align-items: start; }
+.punish-year .yr { font-family: var(--font-display); font-weight: 900; font-size: 26px; line-height: 1.2; }
+.punish-pair > div { display: grid; gap: 3px; align-content: start; padding: 10px 12px; border-radius: var(--radius); background: var(--surface-solid); border: 1px solid var(--line); }
+.punish-pair em { font-style: normal; font-weight: 700; }
+.punish-watch { display: grid; gap: 8px; padding: 14px 16px; border-left: 4px solid var(--bad); }
+.punish-watch .pw-rows { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.punish-watch .pw-rows > div { display: grid; gap: 2px; }
+@media (max-width: 640px) {
+  .punish { padding: 16px; }
+  .punish-now, .punish-pair, .punish-watch .pw-rows { grid-template-columns: 1fr; }
+  .punish-year { grid-template-columns: 1fr; gap: 4px; }
+}
 
 /* What if */
 .whatif { padding: 16px; display: grid; gap: 16px; }
@@ -906,13 +939,15 @@ nav.tabs .tablist a .emoji { display: none; }
         <div class="ice-due-main">
           <div class="block-head">
             <h2>Ices due</h2>
-            <p>One ice for the week's lowest team score and one for every starter at 0 or fewer points. Doubled in the playoffs. Due at the next Thursday night kickoff; a missed deadline doubles it.</p>
+            <p>One ice for the week's lowest team score and one for every starter at 0 or fewer points. Doubled in the playoffs. Due by Thursday night kickoff (8:15 PM ET); a missed deadline doubles it.</p>
             <a class="rules-link" href="#rules">📜 Read the ice rules <span aria-hidden="true">→</span></a>
           </div>
           <div id="ice-due"></div>
         </div>
         <img class="ice-mascot" src="ice-mascot.png" width="385" height="520" alt="" loading="lazy" decoding="async">
       </div>
+      <!-- This season's punishment odds (the league's own site only), linking to the full section in League Rules -->
+      <div class="block" id="punish-watch" hidden></div>
       <!-- What the ice emails look like (both sites). Samples on the page; nothing is sent from here. -->
       <div class="block" id="ice-email-block" hidden>
         <div class="block-head">
@@ -1084,6 +1119,7 @@ nav.tabs .tablist a .emoji { display: none; }
           <p>From the league's ESPN settings, updated automatically. <a href="https://fantasy.espn.com/football/league/settings?leagueId=395796507" target="_blank" rel="noopener">View on ESPN ↗</a></p>
         </div>
         <div id="ice-rules"></div>
+        <div id="punishments" hidden></div>
         <div class="rules-grid" id="rules-sections"></div>
       </div>
       <div class="block">
@@ -1250,7 +1286,11 @@ function trackView(id) {
   if (window.goatcounter?.count) send();
   else window.addEventListener('load', () => setTimeout(send, 0), { once: true });
 }
+// Links into the middle of a tab: #punishments opens League Rules at that section.
+const ANCHORS = { punishments: 'rules' };
 function show(id) {
+  const anchor = ANCHORS[id] ? id : null;
+  if (anchor) id = ANCHORS[id];
   if (!VIEWS.some(([v]) => v === id)) id = 'standings';
   currentView = id;
   document.documentElement.dataset.view = id;
@@ -1269,6 +1309,7 @@ function show(id) {
   updateBottomNav(id);
   trackView(id);
   requestAnimationFrame(markScrollers);
+  if (anchor) requestAnimationFrame(() => $(anchor)?.scrollIntoView({ block: 'start' }));
 }
 window.addEventListener('hashchange', () => {
   show(location.hash.slice(1));
@@ -1791,7 +1832,7 @@ function renderIceEmailSamples() {
     for (const wk of [...I.weeks].reverse()) for (const o of wk.owed) { const r = o.reasons.find((x) => x.kind === kind); if (r) return { wk, o, r }; }
     return null;
   };
-  const due = (wk) => (wk.deadline ? new Date(wk.deadline).toLocaleString('en-US', { timeZone: 'America/New_York', weekday: 'long', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) + ' ET' : 'kickoff of the next Thursday night game');
+  const due = (wk) => (wk.deadline ? new Date(wk.deadline).toLocaleString('en-US', { timeZone: 'America/New_York', weekday: 'long', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) + ' ET' : 'Thursday night kickoff (8:15 PM ET)');
   const mail = (kind, hit) => {
     const { wk, o, r } = hit, first = firstName(D.owners[o.ownerId]?.name || 'Manager'), count = r.ices > 1 ? `${r.ices} ices` : 'an ice';
     const why = kind === 'lowest'
@@ -1870,6 +1911,7 @@ function renderIce() {
   }
   if (latest && latest.deadline <= now) html += head(latest, false) + cards(latest);
   $('ice-due').innerHTML = html || '<p class="note">No weeks played yet.</p>';
+  renderPunishWatch();
   renderIceEmailSamples();
 
   const maxAvg = Math.max(...I.table.map((r) => r.avg || 0));
@@ -1901,7 +1943,7 @@ function renderIce() {
   $('ice-log-note').textContent = log.length ? `${log.length} ices logged, newest first. Kept in the league's Google Sheet. ⚡ fastest, 🐢 slowest.` : 'No ices logged yet.';
   $('ice-log').innerHTML = `<thead><tr><th>Completed</th><th>Owner</th><th class="r">Week</th><th>Reason</th><th class="r">Time</th></tr></thead><tbody>${log.map((x) => `
     <tr><td>${esc(x.date)} <small class="note">${esc(x.time)}</small></td><td><b>${esc(owner(x.ownerId))}</b></td><td class="r">${x.week ?? ''}</td>
-    <td style="white-space:normal">${/lowest/i.test(x.why) ? E('🪫') : E('🥚')} ${esc(x.why)}</td><td class="r" title="${x.secs === fastest ? 'Fastest ice' : x.secs === slowestLog ? 'Slowest ice' : ''}">${slot(x.secs === fastest ? '⚡' : x.secs === slowestLog ? '🐢' : '')}<b>${fmtS(x.secs)}</b></td></tr>`).join('')}</tbody>`;
+    <td style="white-space:normal">${/lowest/i.test(x.why) ? E('🪫') : E('🥚')} ${esc(x.why)}${x.note ? `<small class="note ice-log-note">📝 ${esc(x.note)}</small>` : ''}</td><td class="r" title="${x.secs === fastest ? 'Fastest ice' : x.secs === slowestLog ? 'Slowest ice' : ''}">${slot(x.secs === fastest ? '⚡' : x.secs === slowestLog ? '🐢' : '')}<b>${fmtS(x.secs)}</b></td></tr>`).join('')}</tbody>`;
 }
 
 /* ---------- Power ---------- */
@@ -2152,8 +2194,8 @@ function renderRules() {
     <ol>
       <li><b>Lowest score of the week.</b> The team with the week's lowest score owes one ice. If teams tie for lowest, each owes one.</li>
       <li><b>Zero-point starters.</b> Every player in your starting lineup who finishes the week with 0 or fewer points earns you one ice.</li>
-      <li><b>Deadline: Thursday night kickoff.</b> Ices must be finished before kickoff of the following Thursday night game.</li>
-      ${miss ? `<li><b>Miss the deadline, it doubles.</b> An ice not done by Thursday night kickoff counts ×${miss}.</li>` : ''}
+      <li><b>Deadline: Thursday night kickoff (8:15 PM ET).</b> Ices must be finished by 8:15 PM ET on the Thursday after the week's games.</li>
+      ${miss ? `<li><b>Miss the deadline, it doubles.</b> An ice not done by Thursday night kickoff (8:15 PM ET) counts ×${miss}.</li>` : ''}
       <li><b>Playoffs count double.</b> Every ice earned in a playoff game counts ×${m}.</li>
     </ol>
     ${D.public ? `<p class="note">The <a href="#ice">Ice tab</a> works out every ice automatically from ESPN scores.</p>` : `<h4 class="sub-rules">🚨 Off-the-field ices</h4>
@@ -2166,10 +2208,61 @@ function renderRules() {
     </ul>
     <p class="note">The <a href="#ice">Ice tab</a> works out game ices automatically and emails whoever owes. Off-the-field ices aren't tracked automatically; log them in the league's ice sheet and they'll appear in the Ice tab's ice log with the reason given.</p>`}
   </div>`;
+  renderPunishments();
   $('rules-sections').innerHTML = R.sections.map((s) => `<div class="panel rules-card"><h3><i class="emoji">${s.icon}</i> ${esc(s.title)}</h3>${list(s.rows)}</div>`).join('');
   const SCORE_ICON = { Passing: '🎯', Rushing: '🏃', Receiving: '🙌', Kicking: '🦵', 'Defense & special teams': '🛡️', Miscellaneous: '✨', Other: '📋' };
   $('rules-scoring').innerHTML = R.scoring.map((g) => `<div class="panel rules-card"><h3><i class="emoji">${SCORE_ICON[g.group] || '📋'}</i> ${esc(g.group)}</h3>${list(g.items.map((i) => ({ label: i.label, value: i.value })))}</div>`).join('');
   $('rules-scoring').querySelectorAll('dd').forEach((dd) => { if (dd.textContent.startsWith('-')) dd.classList.add('neg-val'); else if (dd.textContent.startsWith('+')) dd.classList.add('pos-val'); });
+}
+
+/* ---------- Punishments (the league's own site only) ---------- */
+const PUNISH_KIND = { regular: ['📉', 'Worst regular-season record'], playoffs: ['🚽', 'Toilet bowl loser'] };
+const oddsPct = (c) => (c >= 99.95 ? '100%' : c > 99 ? '>99%' : c < 1 ? '<1%' : `${Math.round(c)}%`);
+// The stipulations stay folded away until tapped.
+const stip = (p) => (p?.rules ? `<details class="punish-stip"><summary>Tap to read the stipulations</summary><p>${esc(p.rules)}</p></details>` : '');
+function renderPunishments() {
+  const P = D.punishments, box = $('punishments');
+  if (!P) return;
+  box.hidden = false;
+  const C = P.current;
+  const card = (kind) => {
+    const [icon, label] = PUNISH_KIND[kind], p = P.rules[kind], odds = C?.[kind] ?? [], locked = C?.[`${kind}Locked`];
+    const top = odds.slice(0, 5), rest = odds.length - top.length;
+    const who = locked ? `<p class="punish-owed">${E('🔒')} ${esc(ownerName(odds[0].ownerId))} owes it (${esc(T[odds[0].teamId].name)})</p>`
+      : odds.length ? `<span class="eyebrow">On the hook</span><ul class="punish-odds">${top.map((x) => `<li><span><b>${esc(ownerName(x.ownerId))}</b>${kind === 'regular' ? ` <small class="note">${x.w}-${x.l}</small>` : ''}</span><div class="bar"><i style="width:${x.chance}%"></i></div><b class="num">${oddsPct(x.chance)}</b></li>`).join('')}</ul>${rest ? `<small class="note">${rest} more, each under ${oddsPct(odds[top.length - 1].chance)}.</small>` : ''}` : '';
+    return `<div class="punish-card"><span class="eyebrow">${E(icon)} ${L.season} · ${label}</span>
+      ${p ? `<strong class="punish-title">${esc(p.title)}</strong>${stip(p)}` : `<strong class="punish-title note">No ${kind === 'regular' ? 'regular-season' : 'playoff'} punishment set yet</strong>`}
+      ${who}</div>`;
+  };
+  const past = P.past.map((y) => {
+    const side = (kind, x) => {
+      const [icon, label] = PUNISH_KIND[kind];
+      if (!x) return `<div><span class="eyebrow">${E(icon)} ${label}</span><span class="note">Not played</span></div>`;
+      return `<div><span class="eyebrow">${E(icon)} ${label}</span><b>${esc(ownerName(x.ownerId))}</b><small class="note">${esc(x.team)}${x.record ? ` · ${esc(x.record)}` : ''}</small>
+        ${x.title ? `<em>${esc(x.title)}</em>${stip(x)}` : `<span class="note">No ${kind === 'regular' ? 'regular-season' : 'playoff'} punishment that year</span>`}</div>`;
+    };
+    return `<div class="punish-year"><span class="yr">${y.year}</span><div class="punish-pair">${side('regular', y.regular)}${side('playoffs', y.playoffs)}</div></div>`;
+  }).join('');
+  box.innerHTML = `<div class="panel punish">
+    <h3>⚖️ Season Punishments</h3>
+    <p class="lede">Two every season: one for the worst regular-season record, and one for last place in the toilet bowl (the losers' bracket in the playoffs).</p>
+    <div class="punish-now">${card('regular')}${card('playoffs')}</div>
+    ${C && !(C.regularLocked && C.playoffsLocked) ? `<p class="note">Chances from ${C.runs.toLocaleString()} simulations of the rest of the season, from each team's scoring this season and ESPN's projections for the week in progress. Ties in the standings go by ${esc(C.tiebreak)}.</p>` : ''}
+    ${past ? `<h4 class="sub-rules">Past seasons</h4><div class="punish-past">${past}</div>` : ''}
+  </div>`;
+}
+// A short version on the Ice tab: who's most likely to get each punishment, linking to League Rules.
+function renderPunishWatch() {
+  const C = D.punishments?.current, box = $('punish-watch');
+  if (!C) return;
+  const row = (kind) => {
+    const [icon, label] = PUNISH_KIND[kind], x = C[kind][0];
+    return `<div><span class="eyebrow">${E(icon)} ${label}</span>${x ? `<span><b>${esc(ownerName(x.ownerId))}</b> <span class="pill muted">${C[`${kind}Locked`] ? 'locked in' : oddsPct(x.chance)}</span></span>` : '<span class="note">—</span>'}</div>`;
+  };
+  box.hidden = false;
+  box.innerHTML = `<div class="panel punish-watch"><span class="eyebrow">⚖️ Punishment watch · ${L.season}</span>
+    <div class="pw-rows">${row('regular')}${row('playoffs')}</div>
+    <a class="rules-link" href="#punishments">Read the punishments <span aria-hidden="true">→</span></a></div>`;
 }
 
 /* ---------- History ---------- */
